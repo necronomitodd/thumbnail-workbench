@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Thumbnail Workbench — Fast, Focused Desktop Thumbnail Utility</title>
-  <!-- Gumroad Overlay Script -->
   <script src="https://gumroad.com/js/gumroad.js"></script>
   <style>
     :root {
@@ -82,14 +81,14 @@
         <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Pick a fair price to support independent software development, or enter a custom amount:</p>
         
         <div class="tier-buttons">
-          <button class="tier-btn" data-price="0">$0 (Free)</button>
-          <button class="tier-btn active" data-price="5">$5 ⭐</button>
-          <button class="tier-btn" data-price="10">$10 ☕</button>
+          <button type="button" class="tier-btn" id="btn-0" onclick="selectTier(0)">$0 (Free)</button>
+          <button type="button" class="tier-btn active" id="btn-5" onclick="selectTier(5)">$5 ⭐</button>
+          <button type="button" class="tier-btn" id="btn-10" onclick="selectTier(10)">$10 ☕</button>
         </div>
 
         <div class="price-input-wrapper">
           <span class="currency-symbol">$</span>
-          <input type="number" id="customPrice" class="price-input" value="5" min="0" step="1" />
+          <input type="number" id="customPrice" class="price-input" value="5" min="0" step="1" oninput="updateCustomPrice(this.value)" />
         </div>
 
         <a id="checkoutBtn" href="https://toddler253.gumroad.com/l/thumbnail-workbench?wanted=true&price=5" class="cta-button">
@@ -102,36 +101,33 @@
   </div>
 
   <script>
-    const GUMROAD_PRODUCT_URL = "https://toddler253.gumroad.com/l/thumbnail-workbench"\;
-    const priceInput = document.getElementById("customPrice");
-    const checkoutBtn = document.getElementById("checkoutBtn");
-    const tierButtons = document.querySelectorAll(".tier-btn");
+    const GUMROAD_URL = "https://toddler253.gumroad.com/l/thumbnail-workbench"\;
 
-    function updateCheckout(price) {
-      const validPrice = isNaN(price) || price < 0 ? 0 : price;
-      priceInput.value = validPrice;
-      checkoutBtn.href = `${GUMROAD_PRODUCT_URL}?wanted=true&price=${validPrice}`;
-      checkoutBtn.textContent = `Get Thumbnail Workbench ($${validPrice})`;
-      
-      tierButtons.forEach(b => {
-        if (parseFloat(b.getAttribute("data-price")) === validPrice) {
-          b.classList.add("active");
-        } else {
-          b.classList.remove("active");
-        }
-      });
+    function selectTier(price) {
+      document.getElementById("customPrice").value = price;
+      updateCheckoutState(price);
     }
 
-    tierButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const val = parseFloat(btn.getAttribute("data-price"));
-        updateCheckout(val);
-      });
-    });
+    function updateCustomPrice(val) {
+      const price = parseFloat(val);
+      updateCheckoutState(isNaN(price) || price < 0 ? 0 : price);
+    }
 
-    priceInput.addEventListener("input", () => {
-      updateCheckout(parseFloat(priceInput.value));
-    });
+    function updateCheckoutState(price) {
+      const btn0 = document.getElementById("btn-0");
+      const btn5 = document.getElementById("btn-5");
+      const btn10 = document.getElementById("btn-10");
+      
+      [btn0, btn5, btn10].forEach(b => b.classList.remove("active"));
+
+      if (price === 0) btn0.classList.add("active");
+      else if (price === 5) btn5.classList.add("active");
+      else if (price === 10) btn10.classList.add("active");
+
+      const checkoutBtn = document.getElementById("checkoutBtn");
+      checkoutBtn.href = `${GUMROAD_URL}?wanted=true&price=${price}`;
+      checkoutBtn.textContent = `Get Thumbnail Workbench ($${price})`;
+    }
 
     const userAgent = window.navigator.userAgent;
     const osNotice = document.getElementById("osNotice");
