@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Ensure Homebrew bin is in PATH so 'gh' is always found
+export PATH="/opt/homebrew/bin:$PATH"
+
 REPO_NAME="thumbnail-workbench"
 
 git add .
