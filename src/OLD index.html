@@ -1,0 +1,3034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thumbnail Workbench</title>
+  <style>
+    *, ::before, ::after {
+      box-sizing: border-box;
+      border-width: 0;
+      border-style: solid;
+      border-color: #27272a;
+    }
+    html {
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+      tab-size: 4;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      line-height: inherit;
+      background-color: #09090b;
+      color: #f4f4f5;
+      height: 100vh;
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #18181b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 3px;
+    }
+
+    .app-body {
+      flex: 1 1 0%;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    #workspace {
+      flex: 1 1 0%;
+      background-color: #09090b;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .canvas-container {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+      position: relative;
+      border-radius: 6px;
+      border: 1px solid #27272a;
+      background-color: #18181b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: calc(100% - 2.5rem);
+      aspect-ratio: 16 / 9;
+      transition: aspect-ratio 200ms ease;
+    }
+
+    #mainCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      cursor: default;
+      outline: none;
+    }
+
+    .slot-drag-target {
+      border-color: #ef4444 !important;
+      background-color: rgba(239, 68, 68, 0.2) !important;
+    }
+
+    #dragGhost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      background-color: #ef4444;
+      color: white;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transform: translate(12px, 12px);
+      display: none;
+    }
+
+    #exportToast {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background-color: #15803d;
+      color: #ffffff;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.375rem;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.025em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 10000;
+      transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #exportToast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    header {
+      background-color: #18181b;
+      border-bottom: 1px solid #27272a;
+      padding: 0.625rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    aside {
+      width: 24rem;
+      background-color: #18181b;
+      border-left: 1px solid #27272a;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .flex { display: flex; }
+    .flex-1 { flex: 1 1 0%; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .space-x-1 > * + * { margin-left: 0.25rem; }
+    .space-x-1\.5 > * + * { margin-left: 0.375rem; }
+    .space-x-2 > * + * { margin-left: 0.5rem; }
+    .space-x-4 > * + * { margin-left: 1rem; }
+    .space-y-1\.5 > * + * { margin-top: 0.375rem; }
+    .space-y-2 > * + * { margin-top: 0.5rem; }
+    .space-y-2\.5 > * + * { margin-top: 0.625rem; }
+    .space-y-3 > * + * { margin-top: 0.75rem; }
+    .space-y-3\.5 > * + * { margin-top: 0.875rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .space-y-5 > * + * { margin-top: 1.25rem; }
+
+    .grid { display: grid; }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gap-2 { gap: 0.5rem; }
+
+    .w-full { width: 100%; }
+    .w-14 { width: 3.5rem; }
+    .w-4 { width: 1rem; }
+    .h-4 { height: 1rem; }
+    .w-3\.5 { width: 0.875rem; }
+    .h-3\.5 { height: 0.875rem; }
+    .w-5 { width: 1.25rem; }
+    .h-5 { height: 1.25rem; }
+    .w-6 { width: 1.5rem; }
+    .h-6 { height: 1.5rem; }
+    .w-7 { width: 1.75rem; }
+    .h-7 { height: 1.75rem; }
+    .rounded { border-radius: 0.25rem; }
+    .rounded-md { border-radius: 0.375rem; }
+    .border { border-width: 1px; }
+    .border-b { border-bottom-width: 1px; }
+    .border-t { border-top-width: 1px; }
+    .border-l { border-left-width: 1px; }
+    .border-zinc-700 { border-color: #3f3f46; }
+    .border-zinc-800 { border-color: #27272a; }
+    .border-zinc-900 { border-color: #18181b; }
+    .border-red-500 { border-color: #ef4444; }
+    .border-red-800\/50 { border-color: rgba(153, 27, 27, 0.5); }
+
+    .bg-zinc-800 { background-color: #27272a; }
+    .bg-zinc-900 { background-color: #18181b; }
+    .bg-zinc-950 { background-color: #09090b; }
+    .bg-amber-500 { background-color: #f59e0b; }
+    .bg-red-600 { background-color: #dc2626; }
+    .bg-emerald-600 { background-color: #16a34a; }
+    .bg-red-950\/40 { background-color: rgba(69, 10, 10, 0.4); }
+    .text-white { color: #ffffff; }
+    .text-zinc-200 { color: #e4e4e7; }
+    .text-zinc-300 { color: #d4d4d8; }
+    .text-zinc-400 { color: #a1a1aa; }
+    .text-zinc-500 { color: #71717a; }
+    .text-zinc-600 { color: #52525b; }
+    .text-zinc-950 { color: #09090b; }
+    .text-red-400 { color: #f87171; }
+
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-xs { font-size: 0.75rem; line-height: 1rem; }
+    .text-\[10px\] { font-size: 10px; }
+    .text-\[11px\] { font-size: 11px; }
+    .font-bold { font-weight: 700; }
+    .font-semibold { font-weight: 600; }
+    .font-black { font-weight: 900; }
+    .font-medium { font-weight: 500; }
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .font-serif { font-family: ui-serif, Georgia, Cambria, Times, serif; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wide { letter-spacing: 0.025em; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .uppercase { text-transform: uppercase; }
+    .italic { font-style: italic; }
+    .text-center { text-align: center; }
+
+    .p-2 { padding: 0.5rem; }
+    .p-2\.5 { padding: 0.625rem; }
+    .p-3 { padding: 0.75rem; }
+    .p-3\.5 { padding: 0.875rem; }
+    .p-4 { padding: 1rem; }
+    .px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+    .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+    .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+    .pt-1 { padding-top: 0.25rem; }
+    .pt-1\.5 { padding-top: 0.375rem; }
+    .pt-2 { padding-top: 0.5rem; }
+    .pb-2 { padding-bottom: 0.5rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-3 { margin-top: 0.75rem; }
+    .block { display: block; }
+    .hidden { display: none; }
+    .cursor-pointer { cursor: pointer; }
+    .cursor-grab { cursor: grab; }
+    .cursor-grabbing { cursor: grabbing; }
+    .opacity-40 { opacity: 0.4; }
+    .disabled\:opacity-30:disabled { opacity: 0.3; cursor: not-allowed; }
+    .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); }
+    .transition-colors { transition-property: color, background-color, border-color; transition-duration: 150ms; }
+
+    button:hover:not(:disabled) { filter: brightness(1.1); }
+    button:active:not(:disabled) { filter: brightness(0.95); }
+    input[type="range"] { accent-color: #ef4444; }
+    input[type="checkbox"] { accent-color: #ef4444; }
+  </style>
+</head>
+<body>
+
+  <div id="exportToast">
+    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span id="exportToastText">Action completed!</span>
+  </div>
+
+  <div id="dragGhost">Moving Slot</div>
+
+  <header>
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2">
+        <span class="text-xl font-black tracking-tight text-white">THUMBNAIL</span>
+        <span class="text-xs bg-red-600 text-white font-bold px-2 py-0.5 rounded tracking-wide">WORKBENCH</span>
+      </div>
+
+      <button id="modeToggleBtn" class="flex items-center space-x-2 px-3 py-1.5 rounded-md font-semibold text-xs transition-colors bg-amber-500 text-zinc-950 shadow">
+        <svg id="lockIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+        </svg>
+        <span id="modeStatusText">LAYOUT MODE (UNLOCKED)</span>
+      </button>
+
+      <button id="aspectRatioToggleBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md font-bold text-xs transition-colors bg-zinc-800 border border-zinc-700 text-zinc-200 hover:text-white">
+        <span class="text-zinc-400 font-mono">RATIO:</span>
+        <span id="aspectRatioLabel" class="text-amber-400">16:9 LANDSCAPE</span>
+      </button>
+
+      <!-- Layout Selector & Quick Reset Layout Button -->
+      <div class="flex items-center space-x-1.5">
+        <label for="layoutSelect" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Layout:</label>
+        <select id="layoutSelect" class="bg-zinc-800 text-xs text-white border border-zinc-700 rounded px-2.5 py-1.5"></select>
+        <button id="resetLayoutBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 font-semibold text-xs px-2 py-1.5 rounded shadow transition-colors flex items-center space-x-1" title="Reset divider seams back to initial default positions for this layout">
+          <span>↺ Reset</span>
+        </button>
+      </div>
+
+      <button id="safeZoneToggleBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md font-bold text-xs transition-colors bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white" title="Toggle YouTube UI overlays (duration badge & progress bar)">
+        <span class="font-mono text-[10px]">SAFE ZONES:</span>
+        <span id="safeZoneLabel" class="text-zinc-400">OFF</span>
+      </button>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button id="copySlideBtn" class="bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-zinc-700 font-bold text-xs uppercase tracking-wider px-3 py-1.5 rounded shadow transition-colors flex items-center space-x-1.5" title="Copy full-resolution slide directly to clipboard (Cmd + V into PowerPoint)">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+        <span id="copySlideLabel">Copy Slide</span>
+      </button>
+
+      <button id="export1080Btn" class="bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold text-xs uppercase tracking-wider px-3 py-1.5 rounded shadow transition-colors flex items-center space-x-1.5">
+        <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        <span id="export1080Label">Export 1080p (JPEG)</span>
+      </button>
+
+      <button id="export4kBtn" class="bg-red-600 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-1.5 rounded shadow transition-colors flex items-center space-x-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        <span id="export4kLabel">Export 4K (PNG)</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <main id="workspace">
+      <div class="canvas-container" id="canvasContainer">
+        <canvas id="mainCanvas" width="1920" height="1080" tabindex="0"></canvas>
+      </div>
+
+      <div id="modeTip" class="mt-3 text-xs font-mono text-zinc-500 flex items-center space-x-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="tipText">LAYOUT MODE: Drag middle handles (M) to move dividing bars together. Arrow keys nudge selections.</span>
+      </div>
+    </main>
+
+    <aside>
+      <div class="p-4 space-y-5">
+        <div class="flex border-b border-zinc-800 pb-2 space-x-2">
+          <button id="tabLayoutBtn" class="flex-1 py-1 px-2 text-xs font-bold rounded bg-zinc-800 text-white transition-colors">Base & Slots</button>
+          <button id="tabTextBtn" class="flex-1 py-1 px-2 text-xs font-bold rounded bg-zinc-950 text-zinc-400 transition-colors">Text Layer</button>
+          <button id="tabStickerBtn" class="flex-1 py-1 px-2 text-xs font-bold rounded bg-zinc-950 text-zinc-400 transition-colors">Stickers</button>
+        </div>
+
+        <div id="tabContentLayout" class="space-y-4">
+          <div>
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Canvas Background</h3>
+            <div class="space-y-3 bg-zinc-950 p-3 rounded border border-zinc-800">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-zinc-400">Solid Color</span>
+                <input type="color" id="canvasBgColorPicker" value="#18181b" class="w-7 h-7 rounded border border-zinc-700 bg-transparent cursor-pointer">
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-zinc-900">
+                <span class="text-xs text-zinc-400" id="bgImageStatusText">Wallpaper Image: None</span>
+                <div class="flex items-center space-x-1.5">
+                  <button id="uploadBgImageBtn" class="px-2 py-1 text-[11px] bg-zinc-800 text-zinc-200 rounded font-medium">Upload</button>
+                  <button id="clearBgImageBtn" class="px-2 py-1 text-[11px] text-zinc-500 rounded font-medium disabled:opacity-30" disabled>✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Divider Style</h3>
+            <div class="space-y-3 bg-zinc-950 p-3 rounded border border-zinc-800">
+              <div>
+                <div class="flex justify-between text-xs mb-1 font-mono">
+                  <span class="text-zinc-400">Thickness</span>
+                  <span id="thicknessValueText" class="text-zinc-200">6px</span>
+                </div>
+                <input type="range" id="thicknessRange" min="0" max="30" value="6" class="w-full accent-red-500 bg-zinc-800">
+              </div>
+
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-zinc-400">Divider Color</span>
+                <input type="color" id="dividerColorPicker" value="#ffffff" class="w-7 h-7 rounded border border-zinc-700 bg-transparent cursor-pointer">
+              </div>
+
+              <div class="border-t border-zinc-800 pt-2.5 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <label for="dividerShadowToggle" class="text-xs font-medium text-zinc-300 cursor-pointer">Divider Shadow / Glow</label>
+                  <input type="checkbox" id="dividerShadowToggle" class="accent-red-500 w-4 h-4 rounded cursor-pointer">
+                </div>
+                <div id="dividerShadowSettings" class="space-y-2 hidden">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] text-zinc-400">Shadow Color</span>
+                    <input type="color" id="dividerShadowColorPicker" value="#000000" class="w-6 h-6 rounded border border-zinc-700 bg-transparent cursor-pointer">
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-[11px] font-mono text-zinc-400 mb-1">
+                      <span>Blur / Spread</span>
+                      <span id="dividerShadowBlurText" class="text-zinc-200">16px</span>
+                    </div>
+                    <input type="range" id="dividerShadowBlurRange" min="0" max="50" value="16" class="w-full accent-red-500 bg-zinc-800">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Atmosphere</h3>
+            <div class="space-y-3 bg-zinc-950 p-3 rounded border border-zinc-800">
+              <div class="flex justify-between text-xs mb-1 font-mono">
+                <span class="text-zinc-400">Vignette Darkness</span>
+                <span id="vignetteValueText" class="text-zinc-200">25%</span>
+              </div>
+              <input type="range" id="vignetteRange" min="0" max="100" value="25" class="w-full accent-red-500 bg-zinc-800">
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Slot Images</h3>
+              <span class="text-[10px] text-zinc-500 font-mono">Drag images here or swap with ⋮⋮</span>
+            </div>
+            <div id="slotsContainer" class="space-y-2.5"></div>
+          </div>
+        </div>
+
+        <div id="tabContentText" class="space-y-4 hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Text Boxes</h3>
+            <button id="addTextBoxBtn" class="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow transition-colors flex items-center space-x-1">
+              <span>+ Add Text Box</span>
+            </button>
+          </div>
+
+          <div id="textInspector" class="bg-zinc-950 p-3.5 rounded border border-zinc-800 space-y-3.5">
+            <div class="text-xs text-zinc-500 italic text-center py-2" id="noTextSelectedTip">No text box selected. Click a box on the canvas or create one above.</div>
+
+            <div id="textControls" class="space-y-3 hidden">
+              <div>
+                <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wide block mb-1">Text String</label>
+                <textarea id="textContentInput" rows="2" class="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-xs text-white"></textarea>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wide block mb-1">Font Family</label>
+                  <select id="textFontFamily" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-xs text-white">
+                    <option value="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif">Impact (Classic)</option>
+                    <option value="'Arial Narrow', Impact, 'Trebuchet MS', sans-serif">Condensed Tall (Bebas style)</option>
+                    <option value="system-ui, -apple-system, 'Segoe UI', Arial, sans-serif">Modern Sans (Montserrat style)</option>
+                    <option value="'Franklin Gothic Medium', 'Arial Bold', sans-serif">Heavy Headline (Oswald style)</option>
+                    <option value="'Chalkboard SE', 'Comic Sans MS', cursive">Casual Marker Style</option>
+                    <option value="'Arial Black', Gadget, sans-serif">Ultra Black Heavy</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wide block mb-1">Font Size (<span id="fontSizeDisplay">120</span>px)</label>
+                  <input type="range" id="textFontSize" min="30" max="300" value="120" class="w-full accent-red-500 mt-2">
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1 font-mono">
+                  <span class="text-zinc-400">Rotation Angle</span>
+                  <div class="flex items-center space-x-1">
+                    <span id="textRotationDisplay" class="text-zinc-200">0°</span>
+                    <button id="resetTextRotationBtn" class="text-[10px] text-zinc-500 px-1 bg-zinc-900 rounded border border-zinc-800">0°</button>
+                  </div>
+                </div>
+                <input type="range" id="textRotationSlider" min="-180" max="180" value="0" class="w-full accent-red-500 bg-zinc-800">
+              </div>
+
+              <div class="flex items-center justify-between border-t border-b border-zinc-800 py-2">
+                <div class="flex items-center space-x-1.5">
+                  <button id="toggleBoldBtn" class="px-2.5 py-1 text-xs font-black rounded bg-zinc-900 border border-zinc-700">B</button>
+                  <button id="toggleItalicBtn" class="px-2.5 py-1 text-xs font-serif italic rounded bg-zinc-900 border border-zinc-700">I</button>
+                  <button id="toggleUpperBtn" class="px-2 py-1 text-xs font-bold rounded bg-zinc-900 border border-zinc-700">TT</button>
+                </div>
+                <div class="flex items-center space-x-1">
+                  <button id="alignLeftBtn" class="px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-700">L</button>
+                  <button id="alignCenterBtn" class="px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 text-red-400 font-bold">C</button>
+                  <button id="alignRightBtn" class="px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-700">R</button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-zinc-900 p-2 rounded border border-zinc-800 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[11px] text-zinc-400 font-medium">Fill Color</label>
+                    <label class="flex items-center space-x-1 text-[10px] text-zinc-400 cursor-pointer">
+                      <input type="checkbox" id="textFillNoneToggle" class="accent-red-500 rounded">
+                      <span>None</span>
+                    </label>
+                  </div>
+                  <input type="color" id="textFillColor" value="#ffffff" class="w-full h-7 rounded border border-zinc-700 bg-transparent cursor-pointer">
+                </div>
+
+                <div class="bg-zinc-900 p-2 rounded border border-zinc-800 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[11px] text-zinc-400 font-medium">Outline Color</label>
+                    <label class="flex items-center space-x-1 text-[10px] text-zinc-400 cursor-pointer">
+                      <input type="checkbox" id="textStrokeNoneToggle" class="accent-red-500 rounded">
+                      <span>None</span>
+                    </label>
+                  </div>
+                  <input type="color" id="textStrokeColor" value="#000000" class="w-full h-7 rounded border border-zinc-700 bg-transparent cursor-pointer">
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1 font-mono">
+                  <span class="text-zinc-400">Stroke Thickness</span>
+                  <span id="strokeThicknessDisplay" class="text-zinc-200">14px</span>
+                </div>
+                <input type="range" id="textStrokeWidth" min="0" max="40" value="14" class="w-full accent-red-500 bg-zinc-800">
+              </div>
+
+              <div class="border-t border-zinc-800 pt-2 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-zinc-300">Shadow / Outer Glow</label>
+                  <input type="checkbox" id="textShadowToggle" class="accent-red-500 w-4 h-4 rounded">
+                </div>
+                <div id="textShadowSettings" class="space-y-2 hidden">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="text-[11px] text-zinc-400 block mb-1">Glow Color</label>
+                      <input type="color" id="textShadowColor" value="#000000" class="w-full h-7 rounded border border-zinc-700 bg-transparent cursor-pointer">
+                    </div>
+                    <div>
+                      <div class="flex justify-between text-[11px] text-zinc-400 mb-1 font-mono">
+                        <span>Blur</span>
+                        <span id="textShadowBlurDisplay">20px</span>
+                      </div>
+                      <input type="range" id="textShadowBlur" min="0" max="60" value="20" class="w-full accent-red-500 mt-1">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <div class="flex justify-between text-[11px] text-zinc-400 mb-1 font-mono">
+                        <span>Offset X</span>
+                        <span id="textShadowOffsetXDisplay">0px</span>
+                      </div>
+                      <input type="range" id="textShadowOffsetX" min="-40" max="40" value="0" class="w-full accent-red-500">
+                    </div>
+                    <div>
+                      <div class="flex justify-between text-[11px] text-zinc-400 mb-1 font-mono">
+                        <span>Offset Y</span>
+                        <span id="textShadowOffsetYDisplay">8px</span>
+                      </div>
+                      <input type="range" id="textShadowOffsetY" min="-40" max="40" value="8" class="w-full accent-red-500">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-zinc-800 pt-2 space-y-2">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-zinc-300">Background Box Pill</label>
+                  <input type="checkbox" id="textBgToggle" class="accent-red-500 w-4 h-4 rounded">
+                </div>
+                <div id="textBgSettings" class="grid grid-cols-2 gap-2 hidden">
+                  <div>
+                    <label class="text-[11px] text-zinc-400 block mb-1">Box Color</label>
+                    <input type="color" id="textBgColor" value="#dc2626" class="w-full h-7 rounded border border-zinc-700 bg-transparent cursor-pointer">
+                  </div>
+                  <div>
+                    <label class="text-[11px] text-zinc-400 block mb-1">Opacity (<span id="bgOpacityDisplay">90</span>%)</label>
+                    <input type="range" id="textBgOpacity" min="10" max="100" value="90" class="w-full accent-red-500 mt-2">
+                  </div>
+                </div>
+              </div>
+
+              <button id="deleteTextBtn" class="w-full py-1.5 bg-red-950/40 text-red-400 rounded text-xs font-semibold border border-red-800/50 mt-2">
+                Delete This Text Box
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tabContentSticker" class="space-y-4 hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Stickers / Cutouts</h3>
+            <button id="uploadStickerBtn" class="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded shadow transition-colors flex items-center space-x-1">
+              <span>+ Add Sticker</span>
+            </button>
+          </div>
+
+          <div class="text-[11px] text-zinc-400 bg-zinc-950 p-2.5 rounded border border-zinc-800 leading-relaxed">
+            Upload transparent PNGs, logos, arrows, or cutout subjects. Adjust rotation, shadows, or outer glows below.
+          </div>
+
+          <div id="stickersList" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-zinc-800 text-[11px] text-zinc-600 font-mono text-center">
+        Workbench • Multi-Ratio Standalone Studio
+      </div>
+    </aside>
+  </div>
+
+  <input type="file" id="fileUploadInput" accept="image/*" class="hidden">
+  <input type="file" id="bgImageUploadInput" accept="image/*" class="hidden">
+  <input type="file" id="stickerUploadInput" accept="image/*" class="hidden">
+
+  <script>
+    const SLOT_NAMES = ['Slot A', 'Slot B', 'Slot C', 'Slot D', 'Slot E', 'Slot F'];
+
+    const state = {
+      isLocked: false,
+      aspectRatio: '16:9',
+      width: 1920,
+      height: 1080,
+      activeLayout: 'diag_right_2',
+      canvasBgColor: '#18181b',
+      canvasBgImage: null,
+      dividerThickness: 6,
+      dividerColor: '#ffffff',
+      dividerHasShadow: true,
+      dividerShadowColor: '#000000',
+      dividerShadowBlur: 16,
+      vignetteIntensity: 0.25,
+      showSafeZones: false,
+      seams: [{ top: 0.60, bottom: 0.40 }],
+      hSeams: [{ left: 0.50, right: 0.50 }],
+      horizontalSplit: 0.50,
+      slots: [
+        { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 },
+        { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 },
+        { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 },
+        { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 },
+        { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 },
+        { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 }
+      ],
+      textBoxes: [],
+      selectedTextIndex: -1,
+      stickers: [],
+      selectedStickerIndex: -1,
+
+      draggedHandle: null,
+      panningSlot: null,
+      panStart: { x: 0, y: 0 },
+      draggingText: false,
+      draggingSticker: false,
+      resizingSticker: false
+    };
+
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasContainer = document.getElementById('canvasContainer');
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+    const modeStatusText = document.getElementById('modeStatusText');
+    const aspectRatioToggleBtn = document.getElementById('aspectRatioToggleBtn');
+    const aspectRatioLabel = document.getElementById('aspectRatioLabel');
+    const safeZoneToggleBtn = document.getElementById('safeZoneToggleBtn');
+    const safeZoneLabel = document.getElementById('safeZoneLabel');
+    const tipText = document.getElementById('tipText');
+    const layoutSelect = document.getElementById('layoutSelect');
+    const resetLayoutBtn = document.getElementById('resetLayoutBtn');
+    const canvasBgColorPicker = document.getElementById('canvasBgColorPicker');
+    const uploadBgImageBtn = document.getElementById('uploadBgImageBtn');
+    const clearBgImageBtn = document.getElementById('clearBgImageBtn');
+    const bgImageStatusText = document.getElementById('bgImageStatusText');
+    const thicknessRange = document.getElementById('thicknessRange');
+    const thicknessValueText = document.getElementById('thicknessValueText');
+    const dividerColorPicker = document.getElementById('dividerColorPicker');
+    const dividerShadowToggle = document.getElementById('dividerShadowToggle');
+    const dividerShadowSettings = document.getElementById('dividerShadowSettings');
+    const dividerShadowColorPicker = document.getElementById('dividerShadowColorPicker');
+    const dividerShadowBlurRange = document.getElementById('dividerShadowBlurRange');
+    const dividerShadowBlurText = document.getElementById('dividerShadowBlurText');
+    const vignetteRange = document.getElementById('vignetteRange');
+    const vignetteValueText = document.getElementById('vignetteValueText');
+    const slotsContainer = document.getElementById('slotsContainer');
+    const fileUploadInput = document.getElementById('fileUploadInput');
+    const bgImageUploadInput = document.getElementById('bgImageUploadInput');
+    const stickerUploadInput = document.getElementById('stickerUploadInput');
+    const copySlideBtn = document.getElementById('copySlideBtn');
+    const copySlideLabel = document.getElementById('copySlideLabel');
+    const export1080Btn = document.getElementById('export1080Btn');
+    const export4kBtn = document.getElementById('export4kBtn');
+    const export1080Label = document.getElementById('export1080Label');
+    const export4kLabel = document.getElementById('export4kLabel');
+    const dragGhost = document.getElementById('dragGhost');
+    const exportToast = document.getElementById('exportToast');
+    const exportToastText = document.getElementById('exportToastText');
+
+    const tabLayoutBtn = document.getElementById('tabLayoutBtn');
+    const tabTextBtn = document.getElementById('tabTextBtn');
+    const tabStickerBtn = document.getElementById('tabStickerBtn');
+    const tabContentLayout = document.getElementById('tabContentLayout');
+    const tabContentText = document.getElementById('tabContentText');
+    const tabContentSticker = document.getElementById('tabContentSticker');
+
+    const addTextBoxBtn = document.getElementById('addTextBoxBtn');
+    const textControls = document.getElementById('textControls');
+    const noTextSelectedTip = document.getElementById('noTextSelectedTip');
+    const textContentInput = document.getElementById('textContentInput');
+    const textFontFamily = document.getElementById('textFontFamily');
+    const textFontSize = document.getElementById('textFontSize');
+    const fontSizeDisplay = document.getElementById('fontSizeDisplay');
+    const textRotationSlider = document.getElementById('textRotationSlider');
+    const textRotationDisplay = document.getElementById('textRotationDisplay');
+    const resetTextRotationBtn = document.getElementById('resetTextRotationBtn');
+    const textFillColor = document.getElementById('textFillColor');
+    const textFillNoneToggle = document.getElementById('textFillNoneToggle');
+    const textStrokeColor = document.getElementById('textStrokeColor');
+    const textStrokeNoneToggle = document.getElementById('textStrokeNoneToggle');
+    const textStrokeWidth = document.getElementById('textStrokeWidth');
+    const strokeThicknessDisplay = document.getElementById('strokeThicknessDisplay');
+    const textShadowToggle = document.getElementById('textShadowToggle');
+    const textShadowSettings = document.getElementById('textShadowSettings');
+    const textShadowColor = document.getElementById('textShadowColor');
+    const textShadowBlur = document.getElementById('textShadowBlur');
+    const textShadowBlurDisplay = document.getElementById('textShadowBlurDisplay');
+    const textShadowOffsetX = document.getElementById('textShadowOffsetX');
+    const textShadowOffsetXDisplay = document.getElementById('textShadowOffsetXDisplay');
+    const textShadowOffsetY = document.getElementById('textShadowOffsetY');
+    const textShadowOffsetYDisplay = document.getElementById('textShadowOffsetYDisplay');
+    const toggleBoldBtn = document.getElementById('toggleBoldBtn');
+    const toggleItalicBtn = document.getElementById('toggleItalicBtn');
+    const toggleUpperBtn = document.getElementById('toggleUpperBtn');
+    const alignLeftBtn = document.getElementById('alignLeftBtn');
+    const alignCenterBtn = document.getElementById('alignCenterBtn');
+    const alignRightBtn = document.getElementById('alignRightBtn');
+    const textBgToggle = document.getElementById('textBgToggle');
+    const textBgSettings = document.getElementById('textBgSettings');
+    const textBgColor = document.getElementById('textBgColor');
+    const textBgOpacity = document.getElementById('textBgOpacity');
+    const bgOpacityDisplay = document.getElementById('bgOpacityDisplay');
+    const deleteTextBtn = document.getElementById('deleteTextBtn');
+
+    const uploadStickerBtn = document.getElementById('uploadStickerBtn');
+    const stickersList = document.getElementById('stickersList');
+
+    let currentUploadTargetSlot = null;
+
+    // Fast reusable buffer canvas for WebKit-proof pixel adjustments
+    const filterBufferCanvas = document.createElement('canvas');
+    const filterBufferCtx = filterBufferCanvas.getContext('2d', { willReadFrequently: true });
+
+    function getFilteredImageCanvas(img, brightness = 100, contrast = 100) {
+      if (brightness === 100 && contrast === 100) {
+        return img;
+      }
+
+      filterBufferCanvas.width = img.width;
+      filterBufferCanvas.height = img.height;
+      filterBufferCtx.clearRect(0, 0, img.width, img.height);
+      filterBufferCtx.drawImage(img, 0, 0);
+
+      const imgData = filterBufferCtx.getImageData(0, 0, img.width, img.height);
+      const data = imgData.data;
+      const bMult = brightness / 100;
+      const cVal = (contrast - 100) * 2.55;
+      const factor = (259 * (cVal + 255)) / (255 * (259 - cVal));
+
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i] * bMult;
+        let g = data[i + 1] * bMult;
+        let b = data[i + 2] * bMult;
+
+        data[i] = Math.max(0, Math.min(255, factor * (r - 128) + 128));
+        data[i + 1] = Math.max(0, Math.min(255, factor * (g - 128) + 128));
+        data[i + 2] = Math.max(0, Math.min(255, factor * (b - 128) + 128));
+      }
+
+      filterBufferCtx.putImageData(imgData, 0, 0);
+      return filterBufferCanvas;
+    }
+
+    function showToast(message) {
+      exportToastText.textContent = message;
+      exportToast.classList.add('show');
+      setTimeout(() => {
+        exportToast.classList.remove('show');
+      }, 2400);
+    }
+
+    function switchTab(activeTab) {
+      const tabs = [
+        { btn: tabLayoutBtn, content: tabContentLayout, name: 'layout' },
+        { btn: tabTextBtn, content: tabContentText, name: 'text' },
+        { btn: tabStickerBtn, content: tabContentSticker, name: 'sticker' }
+      ];
+      tabs.forEach(t => {
+        if (t.name === activeTab) {
+          t.btn.className = 'flex-1 py-1 px-2 text-xs font-bold rounded bg-zinc-800 text-white transition-colors';
+          t.content.classList.remove('hidden');
+        } else {
+          t.btn.className = 'flex-1 py-1 px-2 text-xs font-bold rounded bg-zinc-950 text-zinc-400 transition-colors';
+          t.content.classList.add('hidden');
+        }
+      });
+    }
+
+    tabLayoutBtn.addEventListener('click', () => switchTab('layout'));
+    tabTextBtn.addEventListener('click', () => switchTab('text'));
+    tabStickerBtn.addEventListener('click', () => switchTab('sticker'));
+
+    safeZoneToggleBtn.addEventListener('click', () => {
+      state.showSafeZones = !state.showSafeZones;
+      safeZoneLabel.textContent = state.showSafeZones ? 'ON' : 'OFF';
+      safeZoneLabel.className = state.showSafeZones ? 'text-amber-400 font-bold' : 'text-zinc-400';
+      render();
+    });
+
+    function snapLandmark(val, landmarks = [0.3333, 0.5, 0.6667], threshold = 0.015) {
+      for (const lm of landmarks) {
+        if (Math.abs(val - lm) < threshold) return lm;
+      }
+      return val;
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+        return;
+      }
+
+      const step = e.shiftKey ? 10 : 1;
+      let handled = false;
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (state.selectedTextIndex >= 0) {
+          state.textBoxes.splice(state.selectedTextIndex, 1);
+          state.selectedTextIndex = state.textBoxes.length - 1;
+          updateTextInspector();
+          render();
+          handled = true;
+        } else if (state.selectedStickerIndex >= 0) {
+          state.stickers.splice(state.selectedStickerIndex, 1);
+          state.selectedStickerIndex = state.stickers.length - 1;
+          updateStickersList();
+          render();
+          handled = true;
+        }
+      } else if (state.selectedTextIndex >= 0) {
+        const box = state.textBoxes[state.selectedTextIndex];
+        if (e.key === 'ArrowLeft') { box.x -= step; handled = true; }
+        if (e.key === 'ArrowRight') { box.x += step; handled = true; }
+        if (e.key === 'ArrowUp') { box.y -= step; handled = true; }
+        if (e.key === 'ArrowDown') { box.y += step; handled = true; }
+      } else if (state.selectedStickerIndex >= 0) {
+        const s = state.stickers[state.selectedStickerIndex];
+        if (e.key === 'ArrowLeft') { s.x -= step; handled = true; }
+        if (e.key === 'ArrowRight') { s.x += step; handled = true; }
+        if (e.key === 'ArrowUp') { s.y -= step; handled = true; }
+        if (e.key === 'ArrowDown') { s.y += step; handled = true; }
+      }
+
+      if (handled) {
+        e.preventDefault();
+        render();
+      }
+    });
+
+    function populateLayoutMenu() {
+      layoutSelect.innerHTML = '';
+
+      if (state.aspectRatio === '16:9') {
+        layoutSelect.innerHTML = `
+          <optgroup label="Diagonally Right (/)">
+            <option value="diag_right_2">2 Columns (Tilt Right /)</option>
+            <option value="diag_right_3">3 Columns (Tilt Right /)</option>
+            <option value="diag_right_4">4 Columns (Tilt Right /)</option>
+          </optgroup>
+          <optgroup label="Diagonally Left (\\)">
+            <option value="diag_left_2">2 Columns (Tilt Left \\)</option>
+            <option value="diag_left_3">3 Columns (Tilt Left \\)</option>
+            <option value="diag_left_4">4 Columns (Tilt Left \\)</option>
+          </optgroup>
+          <optgroup label="Vertical Splits (|)">
+            <option value="vertical_2">2 Columns (Vertical |)</option>
+            <option value="vertical_3">3 Columns (Vertical |)</option>
+            <option value="vertical_4">4 Columns (Vertical |)</option>
+          </optgroup>
+          <optgroup label="YouTube Presets">
+            <option value="versus_50_50">50 / 50 Versus Split</option>
+            <option value="hero_70_30">70 / 30 Hero Focus</option>
+            <option value="hero_stacked">Hero Left + 2 Stacked Cards</option>
+            <option value="hero_stacked_right">Hero Right + 2 Stacked Cards</option>
+            <option value="grid_2x2">2 × 2 Quadrant Grid</option>
+          </optgroup>
+        `;
+      } else {
+        layoutSelect.innerHTML = `
+          <optgroup label="Hamburger (Stacked Tiers)">
+            <option value="v_tier_2">2 Stacked Tiers (Hamburger)</option>
+            <option value="v_tier_3">3 Stacked Tiers (Triple Deck)</option>
+          </optgroup>
+          <optgroup label="Hot Dog (Vertical Slices)">
+            <option value="v_slice_2">2 Columns (Hot Dog)</option>
+            <option value="v_slice_3">3 Columns (Triple Slice)</option>
+          </optgroup>
+          <optgroup label="Grids & The Brady Bunch">
+            <option value="v_grid_2x2">2 × 2 Quadrant Grid</option>
+            <option value="v_brady_bunch">The Brady Bunch (3 × 2 Matrix)</option>
+          </optgroup>
+        `;
+      }
+      layoutSelect.value = state.activeLayout;
+    }
+
+    aspectRatioToggleBtn.addEventListener('click', () => {
+      if (state.aspectRatio === '16:9') {
+        state.aspectRatio = '9:16';
+        state.width = 1080;
+        state.height = 1920;
+        state.activeLayout = 'v_tier_2';
+        aspectRatioLabel.textContent = '9:16 VERTICAL';
+        canvasContainer.style.aspectRatio = '9 / 16';
+        export1080Label.textContent = 'Export 1080x1920 (JPEG)';
+        export4kLabel.textContent = 'Export 4K Vert (PNG)';
+      } else {
+        state.aspectRatio = '16:9';
+        state.width = 1920;
+        state.height = 1080;
+        state.activeLayout = 'diag_right_2';
+        aspectRatioLabel.textContent = '16:9 LANDSCAPE';
+        canvasContainer.style.aspectRatio = '16 / 9';
+        export1080Label.textContent = 'Export 1080p (JPEG)';
+        export4kLabel.textContent = 'Export 4K (PNG)';
+      }
+
+      canvas.width = state.width;
+      canvas.height = state.height;
+      populateLayoutMenu();
+      applyLayoutDefaults();
+    });
+
+    function reorderSlotImages(sourceIndex, targetIndex) {
+      if (sourceIndex === targetIndex) return;
+
+      const temp = state.slots[sourceIndex];
+      state.slots[sourceIndex] = state.slots[targetIndex];
+      state.slots[targetIndex] = temp;
+
+      computeSlotPolygons().forEach((_, idx) => {
+        if (state.slots[idx] && state.slots[idx].image) autoFitImageToSlot(idx);
+      });
+
+      updateSidebarUI();
+      render();
+    }
+
+    function computeSlotPolygons() {
+      const W = state.width;
+      const H = state.height;
+
+      if (state.aspectRatio === '16:9') {
+        if (state.activeLayout === 'hero_stacked') {
+          const s = state.seams[0] || { top: 0.65, bottom: 0.65 };
+          const hY = (state.horizontalSplit || 0.5) * H;
+          return [
+            [{ x: 0, y: 0 }, { x: s.top * W, y: 0 }, { x: s.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: hY }, { x: ((s.top + s.bottom) / 2) * W, y: hY }],
+            [{ x: ((s.top + s.bottom) / 2) * W, y: hY }, { x: W, y: hY }, { x: W, y: H }, { x: s.bottom * W, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'hero_stacked_right') {
+          const s = state.seams[0] || { top: 0.35, bottom: 0.35 };
+          const hY = (state.horizontalSplit || 0.5) * H;
+          const midX = ((s.top + s.bottom) / 2) * W;
+          return [
+            [{ x: 0, y: 0 }, { x: s.top * W, y: 0 }, { x: midX, y: hY }, { x: 0, y: hY }],
+            [{ x: 0, y: hY }, { x: midX, y: hY }, { x: s.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: s.bottom * W, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'grid_2x2') {
+          const s = state.seams[0] || { top: 0.5, bottom: 0.5 };
+          const hY = (state.horizontalSplit || 0.5) * H;
+          const midX = ((s.top + s.bottom) / 2) * W;
+          return [
+            [{ x: 0, y: 0 }, { x: s.top * W, y: 0 }, { x: midX, y: hY }, { x: 0, y: hY }],
+            [{ x: s.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: hY }, { x: midX, y: hY }],
+            [{ x: 0, y: hY }, { x: midX, y: hY }, { x: midX, y: H }, { x: 0, y: H }],
+            [{ x: midX, y: hY }, { x: W, y: hY }, { x: W, y: H }, { x: midX, y: H }]
+          ];
+        }
+
+        if (state.activeLayout.endsWith('_2') || state.activeLayout === 'versus_50_50' || state.activeLayout === 'hero_70_30') {
+          const s = state.seams[0] || { top: 0.5, bottom: 0.5 };
+          return [
+            [{ x: 0, y: 0 }, { x: s.top * W, y: 0 }, { x: s.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: s.bottom * W, y: H }]
+          ];
+        }
+
+        if (state.activeLayout.endsWith('_3')) {
+          const s1 = state.seams[0] || { top: 0.33, bottom: 0.33 };
+          const s2 = state.seams[1] || { top: 0.66, bottom: 0.66 };
+          return [
+            [{ x: 0, y: 0 }, { x: s1.top * W, y: 0 }, { x: s1.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s1.top * W, y: 0 }, { x: s2.top * W, y: 0 }, { x: s2.bottom * W, y: H }, { x: s1.bottom * W, y: H }],
+            [{ x: s2.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: s2.bottom * W, y: H }]
+          ];
+        }
+
+        if (state.activeLayout.endsWith('_4')) {
+          const s1 = state.seams[0] || { top: 0.25, bottom: 0.25 };
+          const s2 = state.seams[1] || { top: 0.50, bottom: 0.50 };
+          const s3 = state.seams[2] || { top: 0.75, bottom: 0.75 };
+          return [
+            [{ x: 0, y: 0 }, { x: s1.top * W, y: 0 }, { x: s1.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s1.top * W, y: 0 }, { x: s2.top * W, y: 0 }, { x: s2.bottom * W, y: H }, { x: s1.bottom * W, y: H }],
+            [{ x: s2.top * W, y: 0 }, { x: s3.top * W, y: 0 }, { x: s3.bottom * W, y: H }, { x: s2.bottom * W, y: H }],
+            [{ x: s3.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: s3.bottom * W, y: H }]
+          ];
+        }
+      }
+
+      if (state.aspectRatio === '9:16') {
+        if (state.activeLayout === 'v_tier_2') {
+          const s = state.hSeams[0] || { left: 0.50, right: 0.50 };
+          return [
+            [{ x: 0, y: 0 }, { x: W, y: 0 }, { x: W, y: s.right * H }, { x: 0, y: s.left * H }],
+            [{ x: 0, y: s.left * H }, { x: W, y: s.right * H }, { x: W, y: H }, { x: 0, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'v_tier_3') {
+          const s1 = state.hSeams[0] || { left: 0.33, right: 0.33 };
+          const s2 = state.hSeams[1] || { left: 0.66, right: 0.66 };
+          return [
+            [{ x: 0, y: 0 }, { x: W, y: 0 }, { x: W, y: s1.right * H }, { x: 0, y: s1.left * H }],
+            [{ x: 0, y: s1.left * H }, { x: W, y: s1.right * H }, { x: W, y: s2.right * H }, { x: 0, y: s2.left * H }],
+            [{ x: 0, y: s2.left * H }, { x: W, y: s2.right * H }, { x: W, y: H }, { x: 0, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'v_slice_2') {
+          const s = state.seams[0] || { top: 0.50, bottom: 0.50 };
+          return [
+            [{ x: 0, y: 0 }, { x: s.top * W, y: 0 }, { x: s.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: s.bottom * W, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'v_slice_3') {
+          const s1 = state.seams[0] || { top: 0.33, bottom: 0.33 };
+          const s2 = state.seams[1] || { top: 0.66, bottom: 0.66 };
+          return [
+            [{ x: 0, y: 0 }, { x: s1.top * W, y: 0 }, { x: s1.bottom * W, y: H }, { x: 0, y: H }],
+            [{ x: s1.top * W, y: 0 }, { x: s2.top * W, y: 0 }, { x: s2.bottom * W, y: H }, { x: s1.bottom * W, y: H }],
+            [{ x: s2.top * W, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: s2.bottom * W, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'v_grid_2x2') {
+          const midX = W * 0.5;
+          const midY = H * 0.5;
+          return [
+            [{ x: 0, y: 0 }, { x: midX, y: 0 }, { x: midX, y: midY }, { x: 0, y: midY }],
+            [{ x: midX, y: 0 }, { x: W, y: 0 }, { x: W, y: midY }, { x: midX, y: midY }],
+            [{ x: 0, y: midY }, { x: midX, y: midY }, { x: midX, y: H }, { x: 0, y: H }],
+            [{ x: midX, y: midY }, { x: W, y: midY }, { x: W, y: H }, { x: midX, y: H }]
+          ];
+        }
+
+        if (state.activeLayout === 'v_brady_bunch') {
+          const midX = W * 0.5;
+          const r1 = H / 3;
+          const r2 = (2 * H) / 3;
+          return [
+            [{ x: 0, y: 0 }, { x: midX, y: 0 }, { x: midX, y: r1 }, { x: 0, y: r1 }],
+            [{ x: midX, y: 0 }, { x: W, y: 0 }, { x: W, y: r1 }, { x: midX, y: r1 }],
+            [{ x: 0, y: r1 }, { x: midX, y: r1 }, { x: midX, y: r2 }, { x: 0, y: r2 }],
+            [{ x: midX, y: r1 }, { x: W, y: r1 }, { x: W, y: r2 }, { x: midX, y: r2 }],
+            [{ x: 0, y: r2 }, { x: midX, y: r2 }, { x: midX, y: H }, { x: 0, y: H }],
+            [{ x: midX, y: r2 }, { x: W, y: r2 }, { x: W, y: H }, { x: midX, y: H }]
+          ];
+        }
+      }
+
+      return [];
+    }
+
+    function getPolygonBoundingBox(poly) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      poly.forEach(pt => {
+        if (pt.x < minX) minX = pt.x;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.y > maxY) maxY = pt.y;
+      });
+      return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
+
+    function isPointInPolygon(point, vs) {
+      let x = point.x, y = point.y;
+      let inside = false;
+      for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i].x, yi = vs[i].y;
+        let xj = vs[j].x, yj = vs[j].y;
+        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function autoFitImageToSlot(slotIndex) {
+      const slot = state.slots[slotIndex];
+      if (!slot.image) return;
+
+      const polygons = computeSlotPolygons();
+      if (!polygons[slotIndex]) return;
+
+      const bbox = getPolygonBoundingBox(polygons[slotIndex]);
+      const img = slot.image;
+
+      const scaleX = bbox.width / img.width;
+      const scaleY = bbox.height / img.height;
+      const fitScale = Math.max(scaleX, scaleY);
+
+      slot.scale = fitScale;
+      slot.x = bbox.x + (bbox.width - (img.width * fitScale)) / 2;
+      slot.y = bbox.y + (bbox.height - (img.height * fitScale)) / 2;
+
+      render();
+    }
+
+    function getTextBoundingBox(box, targetCtx, scaleRatio = 1) {
+      targetCtx.save();
+      const fontStyle = box.isItalic ? 'italic ' : '';
+      const fontWeight = box.isBold ? '900 ' : 'bold ';
+      const fontSize = box.fontSize * scaleRatio;
+      targetCtx.font = `${fontStyle}${fontWeight}${fontSize}px ${box.fontFamily}`;
+
+      const lines = box.text.split('\n');
+      let maxWidth = 0;
+      const lineHeight = fontSize * 1.15;
+
+      lines.forEach(line => {
+        const measured = targetCtx.measureText(box.isUpper ? line.toUpperCase() : line).width;
+        if (measured > maxWidth) maxWidth = measured;
+      });
+
+      const totalHeight = lines.length * lineHeight;
+      const padding = (box.hasBg ? 24 : 10) * scaleRatio;
+
+      let originX = box.x * scaleRatio;
+      if (box.align === 'center') originX -= (maxWidth / 2);
+      else if (box.align === 'right') originX -= maxWidth;
+
+      targetCtx.restore();
+
+      return {
+        x: originX - padding,
+        y: (box.y * scaleRatio) - fontSize - padding + (lineHeight * 0.2),
+        width: maxWidth + (padding * 2),
+        height: totalHeight + (padding * 2),
+        lineHeight,
+        fontSize
+      };
+    }
+
+    function render(targetCtx = ctx, targetWidth = state.width, targetHeight = state.height, isExport = false) {
+      const scaleRatio = targetWidth / state.width;
+      targetCtx.save();
+      targetCtx.clearRect(0, 0, targetWidth, targetHeight);
+
+      targetCtx.fillStyle = state.canvasBgColor || '#18181b';
+      targetCtx.fillRect(0, 0, targetWidth, targetHeight);
+
+      if (state.canvasBgImage) {
+        const img = state.canvasBgImage;
+        const bgScale = Math.max(targetWidth / img.width, targetHeight / img.height);
+        const bw = img.width * bgScale;
+        const bh = img.height * bgScale;
+        const bx = (targetWidth - bw) / 2;
+        const by = (targetHeight - bh) / 2;
+        targetCtx.drawImage(img, bx, by, bw, bh);
+      }
+
+      const polygons = computeSlotPolygons();
+
+      polygons.forEach((poly, index) => {
+        const slot = state.slots[index];
+
+        targetCtx.save();
+        targetCtx.beginPath();
+        poly.forEach((pt, i) => {
+          const sx = pt.x * scaleRatio;
+          const sy = pt.y * scaleRatio;
+          if (i === 0) targetCtx.moveTo(sx, sy);
+          else targetCtx.lineTo(sx, sy);
+        });
+        targetCtx.closePath();
+        targetCtx.clip();
+
+        if (slot && slot.image) {
+          const bbox = getPolygonBoundingBox(poly);
+          const cx = (bbox.x + bbox.width / 2) * scaleRatio;
+          const cy = (bbox.y + bbox.height / 2) * scaleRatio;
+          const rad = ((slot.rotation || 0) * Math.PI) / 180;
+
+          targetCtx.save();
+          targetCtx.translate(cx, cy);
+          targetCtx.rotate(rad);
+          targetCtx.translate(-cx, -cy);
+
+          // Fast native offscreen pixel filter
+          const b = slot.brightness !== undefined ? slot.brightness : 100;
+          const c = slot.contrast !== undefined ? slot.contrast : 100;
+          const renderedSource = getFilteredImageCanvas(slot.image, b, c);
+
+          targetCtx.drawImage(
+            renderedSource,
+            slot.x * scaleRatio,
+            slot.y * scaleRatio,
+            slot.image.width * slot.scale * scaleRatio,
+            slot.image.height * slot.scale * scaleRatio
+          );
+
+          targetCtx.restore();
+        } else {
+          targetCtx.fillStyle = 'rgba(24, 24, 27, 0.7)';
+          targetCtx.fillRect(0, 0, targetWidth, targetHeight);
+
+          targetCtx.fillStyle = '#71717a';
+          targetCtx.font = `bold ${24 * scaleRatio}px system-ui, sans-serif`;
+          targetCtx.textAlign = 'center';
+          targetCtx.textBaseline = 'middle';
+
+          const bbox = getPolygonBoundingBox(poly);
+          const cx = (bbox.x + bbox.width / 2) * scaleRatio;
+          const cy = (bbox.y + bbox.height / 2) * scaleRatio;
+
+          targetCtx.fillText(SLOT_NAMES[index] || `Slot ${index + 1}`, cx, cy - (15 * scaleRatio));
+          targetCtx.font = `${14 * scaleRatio}px system-ui, sans-serif`;
+          targetCtx.fillText('DROP IMAGE HERE', cx, cy + (15 * scaleRatio));
+        }
+        targetCtx.restore();
+      });
+
+      // Dividers with Shadow Support
+      if (state.dividerThickness > 0) {
+        targetCtx.save();
+        targetCtx.strokeStyle = state.dividerColor;
+        targetCtx.lineWidth = state.dividerThickness * scaleRatio;
+        targetCtx.lineCap = 'round';
+
+        if (state.dividerHasShadow) {
+          targetCtx.shadowColor = state.dividerShadowColor || '#000000';
+          targetCtx.shadowBlur = (state.dividerShadowBlur || 16) * scaleRatio;
+        }
+
+        if (state.aspectRatio === '16:9') {
+          state.seams.forEach(s => {
+            targetCtx.beginPath();
+            targetCtx.moveTo(s.top * targetWidth, 0);
+            targetCtx.lineTo(s.bottom * targetWidth, targetHeight);
+            targetCtx.stroke();
+          });
+
+          if (state.activeLayout === 'hero_stacked') {
+            const s = state.seams[0];
+            const midX = ((s.top + s.bottom) / 2) * targetWidth;
+            const hY = state.horizontalSplit * targetHeight;
+            targetCtx.beginPath();
+            targetCtx.moveTo(midX, hY);
+            targetCtx.lineTo(targetWidth, hY);
+            targetCtx.stroke();
+          } else if (state.activeLayout === 'hero_stacked_right') {
+            const s = state.seams[0];
+            const midX = ((s.top + s.bottom) / 2) * targetWidth;
+            const hY = state.horizontalSplit * targetHeight;
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, hY);
+            targetCtx.lineTo(midX, hY);
+            targetCtx.stroke();
+          } else if (state.activeLayout === 'grid_2x2') {
+            const hY = state.horizontalSplit * targetHeight;
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, hY);
+            targetCtx.lineTo(targetWidth, hY);
+            targetCtx.stroke();
+          }
+        } else {
+          if (state.activeLayout.startsWith('v_tier_')) {
+            state.hSeams.forEach(hs => {
+              targetCtx.beginPath();
+              targetCtx.moveTo(0, hs.left * targetHeight);
+              targetCtx.lineTo(targetWidth, hs.right * targetHeight);
+              targetCtx.stroke();
+            });
+          } else if (state.activeLayout.startsWith('v_slice_')) {
+            state.seams.forEach(s => {
+              targetCtx.beginPath();
+              targetCtx.moveTo(s.top * targetWidth, 0);
+              targetCtx.lineTo(s.bottom * targetWidth, targetHeight);
+              targetCtx.stroke();
+            });
+          } else if (state.activeLayout === 'v_grid_2x2') {
+            targetCtx.beginPath();
+            targetCtx.moveTo(targetWidth * 0.5, 0);
+            targetCtx.lineTo(targetWidth * 0.5, targetHeight);
+            targetCtx.moveTo(0, targetHeight * 0.5);
+            targetCtx.lineTo(targetWidth, targetHeight * 0.5);
+            targetCtx.stroke();
+          } else if (state.activeLayout === 'v_brady_bunch') {
+            targetCtx.beginPath();
+            targetCtx.moveTo(targetWidth * 0.5, 0);
+            targetCtx.lineTo(targetWidth * 0.5, targetHeight);
+            targetCtx.moveTo(0, targetHeight / 3);
+            targetCtx.lineTo(targetWidth, targetHeight / 3);
+            targetCtx.moveTo(0, (2 * targetHeight) / 3);
+            targetCtx.lineTo(targetWidth, (2 * targetHeight) / 3);
+            targetCtx.stroke();
+          }
+        }
+
+        targetCtx.restore();
+      }
+
+      if (state.vignetteIntensity > 0) {
+        targetCtx.save();
+        const grad = targetCtx.createRadialGradient(
+          targetWidth / 2, targetHeight / 2, (Math.min(targetWidth, targetHeight) / 3) * scaleRatio,
+          targetWidth / 2, targetHeight / 2, (Math.max(targetWidth, targetHeight) * 0.65) * scaleRatio
+        );
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, `rgba(0,0,0,${state.vignetteIntensity})`);
+        targetCtx.fillStyle = grad;
+        targetCtx.fillRect(0, 0, targetWidth, targetHeight);
+        targetCtx.restore();
+      }
+
+      state.stickers.forEach((sticker, idx) => {
+        targetCtx.save();
+        const sx = sticker.x * scaleRatio;
+        const sy = sticker.y * scaleRatio;
+        const sw = sticker.width * scaleRatio;
+        const sh = sticker.height * scaleRatio;
+        const cx = sx + sw / 2;
+        const cy = sy + sh / 2;
+        const rad = ((sticker.rotation || 0) * Math.PI) / 180;
+
+        targetCtx.translate(cx, cy);
+        targetCtx.rotate(rad);
+        targetCtx.translate(-cx, -cy);
+
+        if (sticker.hasShadow) {
+          targetCtx.shadowColor = sticker.shadowColor || '#000000';
+          targetCtx.shadowBlur = (sticker.shadowBlur || 15) * scaleRatio;
+          targetCtx.shadowOffsetX = (sticker.shadowOffsetX || 0) * scaleRatio;
+          targetCtx.shadowOffsetY = (sticker.shadowOffsetY || 0) * scaleRatio;
+        }
+
+        targetCtx.drawImage(sticker.image, sx, sy, sw, sh);
+
+        targetCtx.shadowColor = 'transparent';
+        targetCtx.shadowBlur = 0;
+        targetCtx.shadowOffsetX = 0;
+        targetCtx.shadowOffsetY = 0;
+
+        if (!isExport && targetCtx === ctx && idx === state.selectedStickerIndex) {
+          targetCtx.strokeStyle = '#ef4444';
+          targetCtx.lineWidth = 2;
+          targetCtx.setLineDash([6, 6]);
+          targetCtx.strokeRect(sx, sy, sw, sh);
+          targetCtx.setLineDash([]);
+
+          targetCtx.fillStyle = '#ef4444';
+          targetCtx.beginPath();
+          targetCtx.arc(sx + sw, sy + sh, 8, 0, Math.PI * 2);
+          targetCtx.fill();
+          targetCtx.strokeStyle = '#ffffff';
+          targetCtx.lineWidth = 2;
+          targetCtx.stroke();
+        }
+        targetCtx.restore();
+      });
+
+      state.textBoxes.forEach((box, idx) => {
+        targetCtx.save();
+        const fontStyle = box.isItalic ? 'italic ' : '';
+        const fontWeight = box.isBold ? '900 ' : 'bold ';
+        const fontSize = box.fontSize * scaleRatio;
+        targetCtx.font = `${fontStyle}${fontWeight}${fontSize}px ${box.fontFamily}`;
+        targetCtx.textAlign = box.align;
+        targetCtx.textBaseline = 'alphabetic';
+
+        const lines = box.text.split('\n');
+        const lineHeight = fontSize * 1.15;
+        const bbox = getTextBoundingBox(box, targetCtx, scaleRatio);
+        const cx = bbox.x + bbox.width / 2;
+        const cy = bbox.y + bbox.height / 2;
+        const rad = ((box.rotation || 0) * Math.PI) / 180;
+
+        targetCtx.translate(cx, cy);
+        targetCtx.rotate(rad);
+        targetCtx.translate(-cx, -cy);
+
+        if (box.hasBg) {
+          targetCtx.save();
+          targetCtx.fillStyle = box.bgColor;
+          targetCtx.globalAlpha = box.bgOpacity;
+          const r = 12 * scaleRatio;
+          targetCtx.beginPath();
+          targetCtx.roundRect(bbox.x, bbox.y, bbox.width, bbox.height, r);
+          targetCtx.fill();
+          targetCtx.restore();
+        }
+
+        if (box.hasShadow) {
+          targetCtx.shadowColor = box.shadowColor || '#000000';
+          targetCtx.shadowBlur = (box.shadowBlur || 20) * scaleRatio;
+          targetCtx.shadowOffsetX = (box.shadowOffsetX || 0) * scaleRatio;
+          targetCtx.shadowOffsetY = (box.shadowOffsetY || 8) * scaleRatio;
+        }
+
+        if (box.hasStroke && box.strokeWidth > 0) {
+          targetCtx.strokeStyle = box.strokeColor;
+          targetCtx.lineWidth = box.strokeWidth * scaleRatio;
+          targetCtx.lineJoin = 'miter';
+          targetCtx.miterLimit = 3;
+          lines.forEach((line, lineIdx) => {
+            const printLine = box.isUpper ? line.toUpperCase() : line;
+            targetCtx.strokeText(printLine, box.x * scaleRatio, (box.y * scaleRatio) + (lineIdx * lineHeight));
+          });
+        }
+
+        if (box.hasFill) {
+          targetCtx.fillStyle = box.fillColor;
+          lines.forEach((line, lineIdx) => {
+            const printLine = box.isUpper ? line.toUpperCase() : line;
+            targetCtx.fillText(printLine, box.x * scaleRatio, (box.y * scaleRatio) + (lineIdx * lineHeight));
+          });
+        }
+
+        targetCtx.shadowColor = 'transparent';
+        targetCtx.shadowBlur = 0;
+        targetCtx.shadowOffsetX = 0;
+        targetCtx.shadowOffsetY = 0;
+
+        if (!isExport && targetCtx === ctx && idx === state.selectedTextIndex) {
+          targetCtx.save();
+          targetCtx.strokeStyle = '#f59e0b';
+          targetCtx.lineWidth = 2;
+          targetCtx.setLineDash([6, 4]);
+          targetCtx.strokeRect(bbox.x - 4, bbox.y - 4, bbox.width + 8, bbox.height + 8);
+          targetCtx.restore();
+        }
+
+        targetCtx.restore();
+      });
+
+      // YouTube Safe Zone Overlay (Excluded from export)
+      if (!isExport && state.showSafeZones && targetCtx === ctx) {
+        targetCtx.save();
+        if (state.aspectRatio === '16:9') {
+          const badgeW = 200 * scaleRatio;
+          const badgeH = 55 * scaleRatio;
+          const badgeX = targetWidth - badgeW - (30 * scaleRatio);
+          const badgeY = targetHeight - badgeH - (30 * scaleRatio);
+
+          targetCtx.fillStyle = 'rgba(0, 0, 0, 0.88)';
+          targetCtx.beginPath();
+          targetCtx.roundRect(badgeX, badgeY, badgeW, badgeH, 10 * scaleRatio);
+          targetCtx.fill();
+
+          targetCtx.fillStyle = '#ffffff';
+          targetCtx.font = `bold ${30 * scaleRatio}px system-ui, sans-serif`;
+          targetCtx.textAlign = 'center';
+          targetCtx.textBaseline = 'middle';
+          targetCtx.fillText('12:44', badgeX + (badgeW / 2), badgeY + (badgeH / 2));
+
+          targetCtx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+          targetCtx.fillRect(0, targetHeight - (10 * scaleRatio), targetWidth * 0.45, 10 * scaleRatio);
+        }
+        targetCtx.restore();
+      }
+
+      // Interactive Handles
+      if (!isExport && !state.isLocked && targetCtx === ctx) {
+        if (state.aspectRatio === '16:9') {
+          state.seams.forEach((s, idx) => {
+            const topX = s.top * state.width;
+            const bottomX = s.bottom * state.width;
+            const midX = (topX + bottomX) / 2;
+            const midY = state.height / 2;
+
+            drawHandle(topX, 18, `T${idx + 1}`);
+            drawHandle(bottomX, state.height - 18, `B${idx + 1}`);
+            drawHandle(midX, midY, `M${idx + 1}`, '#dc2626');
+          });
+
+          if (state.activeLayout === 'hero_stacked' || state.activeLayout === 'grid_2x2') {
+            drawHandle(state.width - 20, state.horizontalSplit * state.height, 'H');
+          } else if (state.activeLayout === 'hero_stacked_right') {
+            drawHandle(20, state.horizontalSplit * state.height, 'H');
+          }
+        } else {
+          if (state.activeLayout.startsWith('v_tier_')) {
+            state.hSeams.forEach((hs, idx) => {
+              const leftY = hs.left * state.height;
+              const rightY = hs.right * state.height;
+              const midX = state.width / 2;
+              const midY = (leftY + rightY) / 2;
+
+              drawHandle(20, leftY, `L${idx + 1}`);
+              drawHandle(state.width - 20, rightY, `R${idx + 1}`);
+              drawHandle(midX, midY, `M${idx + 1}`, '#dc2626');
+            });
+          } else if (state.activeLayout.startsWith('v_slice_')) {
+            state.seams.forEach((s, idx) => {
+              const topX = s.top * state.width;
+              const bottomX = s.bottom * state.width;
+              const midX = (topX + bottomX) / 2;
+              const midY = state.height / 2;
+
+              drawHandle(topX, 18, `T${idx + 1}`);
+              drawHandle(bottomX, state.height - 18, `B${idx + 1}`);
+              drawHandle(midX, midY, `M${idx + 1}`, '#dc2626');
+            });
+          }
+        }
+      }
+
+      targetCtx.restore();
+    }
+
+    function drawHandle(x, y, label, fillColor = '#f59e0b') {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 8;
+
+      ctx.beginPath();
+      const radius = 14;
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      ctx.fillStyle = fillColor === '#dc2626' ? '#ffffff' : '#000000';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, y);
+      ctx.restore();
+    }
+
+    function getCanvasCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = state.width / rect.width;
+      const scaleY = state.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function getHandleAtPosition(coords) {
+      const hitRadius = 28;
+
+      if (state.aspectRatio === '16:9') {
+        for (let i = 0; i < state.seams.length; i++) {
+          const s = state.seams[i];
+          const topX = s.top * state.width;
+          const bottomX = s.bottom * state.width;
+          const midX = (topX + bottomX) / 2;
+          const midY = state.height / 2;
+
+          if (Math.hypot(coords.x - midX, coords.y - midY) <= hitRadius) {
+            return {
+              type: 'seam',
+              index: i,
+              position: 'mid',
+              initialTop: s.top,
+              initialBottom: s.bottom,
+              startX: coords.x
+            };
+          }
+          if (Math.hypot(coords.x - topX, coords.y - 18) <= hitRadius) {
+            return { type: 'seam', index: i, position: 'top' };
+          }
+          if (Math.hypot(coords.x - bottomX, coords.y - (state.height - 18)) <= hitRadius) {
+            return { type: 'seam', index: i, position: 'bottom' };
+          }
+        }
+
+        if (state.activeLayout === 'hero_stacked' || state.activeLayout === 'grid_2x2') {
+          if (Math.hypot(coords.x - (state.width - 20), coords.y - (state.horizontalSplit * state.height)) <= hitRadius) {
+            return { type: 'horizontal' };
+          }
+        } else if (state.activeLayout === 'hero_stacked_right') {
+          if (Math.hypot(coords.x - 20, coords.y - (state.horizontalSplit * state.height)) <= hitRadius) {
+            return { type: 'horizontal' };
+          }
+        }
+      } else {
+        if (state.activeLayout.startsWith('v_tier_')) {
+          for (let i = 0; i < state.hSeams.length; i++) {
+            const hs = state.hSeams[i];
+            const leftY = hs.left * state.height;
+            const rightY = hs.right * state.height;
+            const midX = state.width / 2;
+            const midY = (leftY + rightY) / 2;
+
+            if (Math.hypot(coords.x - midX, coords.y - midY) <= hitRadius) {
+              return {
+                type: 'hSeam',
+                index: i,
+                position: 'mid',
+                initialLeft: hs.left,
+                initialRight: hs.right,
+                startY: coords.y
+              };
+            }
+            if (Math.hypot(coords.x - 20, coords.y - leftY) <= hitRadius) {
+              return { type: 'hSeam', index: i, position: 'left' };
+            }
+            if (Math.hypot(coords.x - (state.width - 20), coords.y - rightY) <= hitRadius) {
+              return { type: 'hSeam', index: i, position: 'right' };
+            }
+          }
+        } else if (state.activeLayout.startsWith('v_slice_')) {
+          for (let i = 0; i < state.seams.length; i++) {
+            const s = state.seams[i];
+            const topX = s.top * state.width;
+            const bottomX = s.bottom * state.width;
+            const midX = (topX + bottomX) / 2;
+            const midY = state.height / 2;
+
+            if (Math.hypot(coords.x - midX, coords.y - midY) <= hitRadius) {
+              return {
+                type: 'seam',
+                index: i,
+                position: 'mid',
+                initialTop: s.top,
+                initialBottom: s.bottom,
+                startX: coords.x
+              };
+            }
+            if (Math.hypot(coords.x - topX, coords.y - 18) <= hitRadius) {
+              return { type: 'seam', index: i, position: 'top' };
+            }
+            if (Math.hypot(coords.x - bottomX, coords.y - (state.height - 18)) <= hitRadius) {
+              return { type: 'seam', index: i, position: 'bottom' };
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      canvas.focus();
+      const coords = getCanvasCoordinates(e);
+
+      if (!state.isLocked) {
+        const hit = getHandleAtPosition(coords);
+        if (hit) {
+          state.draggedHandle = hit;
+          canvas.style.cursor = 'pointer';
+          return;
+        }
+      }
+
+      if (state.selectedStickerIndex >= 0) {
+        const s = state.stickers[state.selectedStickerIndex];
+        const cornerX = s.x + s.width;
+        const cornerY = s.y + s.height;
+        if (Math.hypot(coords.x - cornerX, coords.y - cornerY) <= 18) {
+          state.resizingSticker = true;
+          state.panStart = { x: coords.x, y: coords.y, w: s.width, h: s.height };
+          return;
+        }
+      }
+
+      for (let i = state.stickers.length - 1; i >= 0; i--) {
+        const s = state.stickers[i];
+        if (coords.x >= s.x && coords.x <= s.x + s.width && coords.y >= s.y && coords.y <= s.y + s.height) {
+          state.selectedStickerIndex = i;
+          state.draggingSticker = true;
+          state.panStart = { x: coords.x - s.x, y: coords.y - s.y };
+          switchTab('sticker');
+          render();
+          return;
+        }
+      }
+
+      for (let i = state.textBoxes.length - 1; i >= 0; i--) {
+        const box = state.textBoxes[i];
+        const bbox = getTextBoundingBox(box, ctx, 1);
+        if (coords.x >= bbox.x && coords.x <= bbox.x + bbox.width &&
+            coords.y >= bbox.y && coords.y <= bbox.y + bbox.height) {
+          state.selectedTextIndex = i;
+          state.draggingText = true;
+          state.panStart = { x: coords.x - box.x, y: coords.y - box.y };
+          switchTab('text');
+          updateTextInspector();
+          render();
+          return;
+        }
+      }
+
+      state.selectedTextIndex = -1;
+      state.selectedStickerIndex = -1;
+      updateTextInspector();
+
+      if (state.isLocked) {
+        const polygons = computeSlotPolygons();
+        for (let i = 0; i < polygons.length; i++) {
+          if (isPointInPolygon(coords, polygons[i]) && state.slots[i].image) {
+            state.panningSlot = i;
+            state.panStart = {
+              x: coords.x - state.slots[i].x,
+              y: coords.y - state.slots[i].y
+            };
+            canvas.style.cursor = 'grabbing';
+            break;
+          }
+        }
+      }
+      render();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      const coords = getCanvasCoordinates(e);
+
+      if (state.draggedHandle) {
+        if (state.draggedHandle.type === 'seam') {
+          const idx = state.draggedHandle.index;
+
+          if (state.draggedHandle.position === 'mid') {
+            const deltaNormX = (coords.x - state.draggedHandle.startX) / state.width;
+            let proposedTop = state.draggedHandle.initialTop + deltaNormX;
+            let proposedBottom = state.draggedHandle.initialBottom + deltaNormX;
+
+            if (!e.altKey) {
+              const mid = (proposedTop + proposedBottom) / 2;
+              const snappedMid = snapLandmark(mid);
+              if (snappedMid !== mid) {
+                const snapOffset = snappedMid - mid;
+                proposedTop += snapOffset;
+                proposedBottom += snapOffset;
+              }
+            }
+
+            const minBound = 0.05;
+            const maxBound = 0.95;
+
+            if (proposedTop < minBound || proposedBottom < minBound) {
+              const diff = minBound - Math.min(proposedTop, proposedBottom);
+              proposedTop += diff;
+              proposedBottom += diff;
+            }
+            if (proposedTop > maxBound || proposedBottom > maxBound) {
+              const diff = Math.max(proposedTop, proposedBottom) - maxBound;
+              proposedTop -= diff;
+              proposedBottom -= diff;
+            }
+
+            state.seams[idx].top = proposedTop;
+            state.seams[idx].bottom = proposedBottom;
+          } else {
+            let normX = Math.max(0.05, Math.min(0.95, coords.x / state.width));
+            if (!e.altKey) normX = snapLandmark(normX);
+
+            if (idx > 0) {
+              const prev = state.seams[idx - 1];
+              normX = Math.max((state.draggedHandle.position === 'top' ? prev.top : prev.bottom) + 0.05, normX);
+            }
+            if (idx < state.seams.length - 1) {
+              const next = state.seams[idx + 1];
+              normX = Math.min((state.draggedHandle.position === 'top' ? next.top : next.bottom) - 0.05, normX);
+            }
+            if (state.draggedHandle.position === 'top') state.seams[idx].top = normX;
+            else state.seams[idx].bottom = normX;
+          }
+        } else if (state.draggedHandle.type === 'hSeam') {
+          const idx = state.draggedHandle.index;
+
+          if (state.draggedHandle.position === 'mid') {
+            const deltaNormY = (coords.y - state.draggedHandle.startY) / state.height;
+            let proposedLeft = state.draggedHandle.initialLeft + deltaNormY;
+            let proposedRight = state.draggedHandle.initialRight + deltaNormY;
+
+            if (!e.altKey) {
+              const mid = (proposedLeft + proposedRight) / 2;
+              const snappedMid = snapLandmark(mid);
+              if (snappedMid !== mid) {
+                const snapOffset = snappedMid - mid;
+                proposedLeft += snapOffset;
+                proposedRight += snapOffset;
+              }
+            }
+
+            const minBound = 0.05;
+            const maxBound = 0.95;
+
+            if (proposedLeft < minBound || proposedRight < minBound) {
+              const diff = minBound - Math.min(proposedLeft, proposedRight);
+              proposedLeft += diff;
+              proposedRight += diff;
+            }
+            if (proposedLeft > maxBound || proposedRight > maxBound) {
+              const diff = Math.max(proposedLeft, proposedRight) - maxBound;
+              proposedLeft -= diff;
+              proposedRight -= diff;
+            }
+
+            state.hSeams[idx].left = proposedLeft;
+            state.hSeams[idx].right = proposedRight;
+          } else {
+            let normY = Math.max(0.05, Math.min(0.95, coords.y / state.height));
+            if (!e.altKey) normY = snapLandmark(normY);
+
+            if (idx > 0) {
+              const prev = state.hSeams[idx - 1];
+              normY = Math.max((state.draggedHandle.position === 'left' ? prev.left : prev.right) + 0.05, normY);
+            }
+            if (idx < state.hSeams.length - 1) {
+              const next = state.hSeams[idx + 1];
+              normY = Math.min((state.draggedHandle.position === 'left' ? next.left : next.right) - 0.05, normY);
+            }
+            if (state.draggedHandle.position === 'left') state.hSeams[idx].left = normY;
+            else state.hSeams[idx].right = normY;
+          }
+        } else if (state.draggedHandle.type === 'horizontal') {
+          let splitY = coords.y / state.height;
+          if (!e.altKey) splitY = snapLandmark(splitY);
+          state.horizontalSplit = Math.max(0.15, Math.min(0.85, splitY));
+        }
+        render();
+      } else if (state.draggingText && state.selectedTextIndex >= 0) {
+        const box = state.textBoxes[state.selectedTextIndex];
+        box.x = coords.x - state.panStart.x;
+        box.y = coords.y - state.panStart.y;
+        render();
+      } else if (state.draggingSticker && state.selectedStickerIndex >= 0) {
+        const s = state.stickers[state.selectedStickerIndex];
+        s.x = coords.x - state.panStart.x;
+        s.y = coords.y - state.panStart.y;
+        render();
+      } else if (state.resizingSticker && state.selectedStickerIndex >= 0) {
+        const s = state.stickers[state.selectedStickerIndex];
+        const deltaX = coords.x - state.panStart.x;
+        const newWidth = Math.max(50, state.panStart.w + deltaX);
+        const aspect = s.image.height / s.image.width;
+        s.width = newWidth;
+        s.height = newWidth * aspect;
+        render();
+      } else if (state.panningSlot !== null) {
+        const slot = state.slots[state.panningSlot];
+        slot.x = coords.x - state.panStart.x;
+        slot.y = coords.y - state.panStart.y;
+        render();
+      } else if (!state.isLocked) {
+        const hit = getHandleAtPosition(coords);
+        canvas.style.cursor = hit ? 'pointer' : 'default';
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (state.draggedHandle) state.draggedHandle = null;
+      if (state.draggingText) state.draggingText = false;
+      if (state.draggingSticker || state.resizingSticker) {
+        state.draggingSticker = false;
+        state.resizingSticker = false;
+      }
+      if (state.panningSlot !== null) {
+        state.panningSlot = null;
+        canvas.style.cursor = state.isLocked ? 'grab' : 'default';
+      }
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      if (!state.isLocked) return;
+      e.preventDefault();
+
+      const coords = getCanvasCoordinates(e);
+      const polygons = computeSlotPolygons();
+
+      for (let i = 0; i < polygons.length; i++) {
+        if (isPointInPolygon(coords, polygons[i]) && state.slots[i].image) {
+          const slot = state.slots[i];
+          const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+          const newScale = Math.max(0.05, Math.min(10, slot.scale * zoomFactor));
+
+          slot.x = coords.x - (coords.x - slot.x) * (newScale / slot.scale);
+          slot.y = coords.y - (coords.y - slot.y) * (newScale / slot.scale);
+          slot.scale = newScale;
+
+          render();
+          break;
+        }
+      }
+    }, { passive: false });
+
+    canvasBgColorPicker.addEventListener('input', (e) => {
+      state.canvasBgColor = e.target.value;
+      render();
+    });
+
+    uploadBgImageBtn.addEventListener('click', () => {
+      bgImageUploadInput.click();
+    });
+
+    bgImageUploadInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          state.canvasBgImage = img;
+          bgImageStatusText.textContent = `Wallpaper: ${img.width}×${img.height}`;
+          clearBgImageBtn.disabled = false;
+          render();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+      bgImageUploadInput.value = '';
+    });
+
+    clearBgImageBtn.addEventListener('click', () => {
+      state.canvasBgImage = null;
+      bgImageStatusText.textContent = 'Wallpaper Image: None';
+      clearBgImageBtn.disabled = true;
+      render();
+    });
+
+    thicknessRange.addEventListener('input', (e) => {
+      state.dividerThickness = parseInt(e.target.value, 10);
+      thicknessValueText.textContent = `${state.dividerThickness}px`;
+      render();
+    });
+
+    dividerColorPicker.addEventListener('input', (e) => {
+      state.dividerColor = e.target.value;
+      render();
+    });
+
+    dividerShadowToggle.addEventListener('change', (e) => {
+      state.dividerHasShadow = e.target.checked;
+      dividerShadowSettings.classList.toggle('hidden', !state.dividerHasShadow);
+      render();
+    });
+
+    dividerShadowColorPicker.addEventListener('input', (e) => {
+      state.dividerShadowColor = e.target.value;
+      render();
+    });
+
+    dividerShadowBlurRange.addEventListener('input', (e) => {
+      state.dividerShadowBlur = parseInt(e.target.value, 10);
+      dividerShadowBlurText.textContent = `${state.dividerShadowBlur}px`;
+      render();
+    });
+
+    vignetteRange.addEventListener('input', (e) => {
+      state.vignetteIntensity = parseInt(e.target.value, 10) / 100;
+      vignetteValueText.textContent = `${e.target.value}%`;
+      render();
+    });
+
+    function createNewTextBox() {
+      const newBox = {
+        text: 'BIG REVEAL!',
+        fontFamily: "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif",
+        fontSize: state.aspectRatio === '16:9' ? 130 : 100,
+        rotation: 0,
+        isBold: true,
+        isItalic: false,
+        isUpper: true,
+        align: 'center',
+        hasFill: true,
+        fillColor: '#ffff00',
+        hasStroke: true,
+        strokeColor: '#000000',
+        strokeWidth: 16,
+        hasShadow: true,
+        shadowColor: '#000000',
+        shadowBlur: 20,
+        shadowOffsetX: 0,
+        shadowOffsetY: 8,
+        hasBg: true,
+        bgColor: '#dc2626',
+        bgOpacity: 0.9,
+        x: state.width / 2,
+        y: state.height / 2
+      };
+      state.textBoxes.push(newBox);
+      state.selectedTextIndex = state.textBoxes.length - 1;
+      switchTab('text');
+      updateTextInspector();
+      render();
+    }
+
+    addTextBoxBtn.addEventListener('click', createNewTextBox);
+
+    function updateTextInspector() {
+      if (state.selectedTextIndex < 0 || !state.textBoxes[state.selectedTextIndex]) {
+        textControls.classList.add('hidden');
+        noTextSelectedTip.classList.remove('hidden');
+        return;
+      }
+
+      noTextSelectedTip.classList.add('hidden');
+      textControls.classList.remove('hidden');
+
+      const box = state.textBoxes[state.selectedTextIndex];
+      textContentInput.value = box.text;
+      textFontFamily.value = box.fontFamily;
+      textFontSize.value = box.fontSize;
+      fontSizeDisplay.textContent = box.fontSize;
+
+      textRotationSlider.value = box.rotation || 0;
+      textRotationDisplay.textContent = `${box.rotation || 0}°`;
+
+      textFillNoneToggle.checked = !box.hasFill;
+      textFillColor.disabled = !box.hasFill;
+      textFillColor.value = box.fillColor;
+
+      textStrokeNoneToggle.checked = !box.hasStroke;
+      textStrokeColor.disabled = !box.hasStroke;
+      textStrokeColor.value = box.strokeColor;
+
+      textStrokeWidth.value = box.strokeWidth;
+      strokeThicknessDisplay.textContent = `${box.strokeWidth}px`;
+
+      textShadowToggle.checked = box.hasShadow || false;
+      if (box.hasShadow) {
+        textShadowSettings.classList.remove('hidden');
+        textShadowColor.value = box.shadowColor || '#000000';
+        textShadowBlur.value = box.shadowBlur !== undefined ? box.shadowBlur : 20;
+        textShadowBlurDisplay.textContent = `${textShadowBlur.value}px`;
+        textShadowOffsetX.value = box.shadowOffsetX !== undefined ? box.shadowOffsetX : 0;
+        textShadowOffsetXDisplay.textContent = `${textShadowOffsetX.value}px`;
+        textShadowOffsetY.value = box.shadowOffsetY !== undefined ? box.shadowOffsetY : 8;
+        textShadowOffsetYDisplay.textContent = `${textShadowOffsetY.value}px`;
+      } else {
+        textShadowSettings.classList.add('hidden');
+      }
+
+      toggleBoldBtn.className = box.isBold ? 'px-2.5 py-1 text-xs font-black rounded bg-red-600 text-white' : 'px-2.5 py-1 text-xs font-black rounded bg-zinc-900 border border-zinc-700';
+      toggleItalicBtn.className = box.isItalic ? 'px-2.5 py-1 text-xs font-serif italic rounded bg-red-600 text-white' : 'px-2.5 py-1 text-xs font-serif italic rounded bg-zinc-900 border border-zinc-700';
+      toggleUpperBtn.className = box.isUpper ? 'px-2 py-1 text-xs font-bold rounded bg-red-600 text-white' : 'px-2 py-1 text-xs font-bold rounded bg-zinc-900 border border-zinc-700';
+
+      alignLeftBtn.className = box.align === 'left' ? 'px-2 py-1 text-xs rounded bg-red-600 text-white font-bold' : 'px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-700';
+      alignCenterBtn.className = box.align === 'center' ? 'px-2 py-1 text-xs rounded bg-red-600 text-white font-bold' : 'px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-700';
+      alignRightBtn.className = box.align === 'right' ? 'px-2 py-1 text-xs rounded bg-red-600 text-white font-bold' : 'px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-700';
+
+      textBgToggle.checked = box.hasBg;
+      if (box.hasBg) {
+        textBgSettings.classList.remove('hidden');
+        textBgColor.value = box.bgColor;
+        textBgOpacity.value = Math.round(box.bgOpacity * 100);
+        bgOpacityDisplay.textContent = Math.round(box.bgOpacity * 100);
+      } else {
+        textBgSettings.classList.add('hidden');
+      }
+    }
+
+    textContentInput.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].text = e.target.value;
+        render();
+      }
+    });
+
+    textFontFamily.addEventListener('change', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].fontFamily = e.target.value;
+        render();
+      }
+    });
+
+    textFontSize.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const val = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].fontSize = val;
+        fontSizeDisplay.textContent = val;
+        render();
+      }
+    });
+
+    textRotationSlider.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const deg = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].rotation = deg;
+        textRotationDisplay.textContent = `${deg}°`;
+        render();
+      }
+    });
+
+    resetTextRotationBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].rotation = 0;
+        textRotationSlider.value = 0;
+        textRotationDisplay.textContent = '0°';
+        render();
+      }
+    });
+
+    textFillColor.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].fillColor = e.target.value;
+        render();
+      }
+    });
+
+    textFillNoneToggle.addEventListener('change', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].hasFill = !e.target.checked;
+        textFillColor.disabled = e.target.checked;
+        render();
+      }
+    });
+
+    textStrokeColor.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].strokeColor = e.target.value;
+        render();
+      }
+    });
+
+    textStrokeNoneToggle.addEventListener('change', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].hasStroke = !e.target.checked;
+        textStrokeColor.disabled = e.target.checked;
+        render();
+      }
+    });
+
+    textStrokeWidth.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const val = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].strokeWidth = val;
+        strokeThicknessDisplay.textContent = `${val}px`;
+        render();
+      }
+    });
+
+    textShadowToggle.addEventListener('change', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].hasShadow = e.target.checked;
+        updateTextInspector();
+        render();
+      }
+    });
+
+    textShadowColor.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].shadowColor = e.target.value;
+        render();
+      }
+    });
+
+    textShadowBlur.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const val = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].shadowBlur = val;
+        textShadowBlurDisplay.textContent = `${val}px`;
+        render();
+      }
+    });
+
+    textShadowOffsetX.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const val = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].shadowOffsetX = val;
+        textShadowOffsetXDisplay.textContent = `${val}px`;
+        render();
+      }
+    });
+
+    textShadowOffsetY.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const val = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].shadowOffsetY = val;
+        textShadowOffsetYDisplay.textContent = `${val}px`;
+        render();
+      }
+    });
+
+    toggleBoldBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].isBold = !state.textBoxes[state.selectedTextIndex].isBold;
+        updateTextInspector();
+        render();
+      }
+    });
+
+    toggleItalicBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].isItalic = !state.textBoxes[state.selectedTextIndex].isItalic;
+        updateTextInspector();
+        render();
+      }
+    });
+
+    toggleUpperBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].isUpper = !state.textBoxes[state.selectedTextIndex].isUpper;
+        updateTextInspector();
+        render();
+      }
+    });
+
+    alignLeftBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].align = 'left';
+        updateTextInspector();
+        render();
+      }
+    });
+
+    alignCenterBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].align = 'center';
+        updateTextInspector();
+        render();
+      }
+    });
+
+    alignRightBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].align = 'right';
+        updateTextInspector();
+        render();
+      }
+    });
+
+    textBgToggle.addEventListener('change', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].hasBg = e.target.checked;
+        updateTextInspector();
+        render();
+      }
+    });
+
+    textBgColor.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes[state.selectedTextIndex].bgColor = e.target.value;
+        render();
+      }
+    });
+
+    textBgOpacity.addEventListener('input', (e) => {
+      if (state.selectedTextIndex >= 0) {
+        const val = parseInt(e.target.value, 10);
+        state.textBoxes[state.selectedTextIndex].bgOpacity = val / 100;
+        bgOpacityDisplay.textContent = val;
+        render();
+      }
+    });
+
+    deleteTextBtn.addEventListener('click', () => {
+      if (state.selectedTextIndex >= 0) {
+        state.textBoxes.splice(state.selectedTextIndex, 1);
+        state.selectedTextIndex = state.textBoxes.length - 1;
+        updateTextInspector();
+        render();
+      }
+    });
+
+    uploadStickerBtn.addEventListener('click', () => {
+      stickerUploadInput.click();
+    });
+
+    stickerUploadInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const defaultWidth = state.aspectRatio === '16:9' ? 400 : 350;
+          const aspect = img.height / img.width;
+          const newSticker = {
+            image: img,
+            x: (state.width - defaultWidth) / 2,
+            y: (state.height - (defaultWidth * aspect)) / 2,
+            width: defaultWidth,
+            height: defaultWidth * aspect,
+            rotation: 0,
+            hasShadow: true,
+            shadowColor: '#000000',
+            shadowBlur: 20,
+            shadowOffsetX: 0,
+            shadowOffsetY: 8
+          };
+          state.stickers.push(newSticker);
+          state.selectedStickerIndex = state.stickers.length - 1;
+          updateStickersList();
+          switchTab('sticker');
+          render();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+      stickerUploadInput.value = '';
+    });
+
+    function updateStickersList() {
+      stickersList.innerHTML = '';
+      state.stickers.forEach((s, idx) => {
+        const item = document.createElement('div');
+        item.className = `p-2.5 rounded border flex flex-col space-y-2 text-xs ${idx === state.selectedStickerIndex ? 'bg-zinc-800 border-red-500' : 'bg-zinc-950 border-zinc-800'}`;
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between cursor-pointer';
+
+        const label = document.createElement('span');
+        label.className = 'font-semibold text-zinc-300 select-none';
+        label.textContent = `Sticker #${idx + 1} (${Math.round(s.width)}×${Math.round(s.height)})`;
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'text-red-400 hover:text-red-300 px-2 py-0.5 text-xs cursor-pointer';
+        delBtn.textContent = '✕';
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          state.stickers.splice(idx, 1);
+          if (state.selectedStickerIndex === idx) state.selectedStickerIndex = -1;
+          else if (state.selectedStickerIndex > idx) state.selectedStickerIndex--;
+          updateStickersList();
+          render();
+        };
+
+        header.appendChild(label);
+        header.appendChild(delBtn);
+
+        header.onclick = () => {
+          state.selectedStickerIndex = idx;
+          updateStickersList();
+          render();
+        };
+
+        const rotRow = document.createElement('div');
+        rotRow.className = 'flex items-center space-x-2 pt-1 border-t border-zinc-900';
+
+        const rotLabel = document.createElement('span');
+        rotLabel.className = 'text-[10px] text-zinc-400 font-mono w-14 select-none';
+        rotLabel.textContent = `Rot: ${s.rotation || 0}°`;
+
+        const rotSlider = document.createElement('input');
+        rotSlider.type = 'range';
+        rotSlider.min = '-180';
+        rotSlider.max = '180';
+        rotSlider.value = s.rotation || 0;
+        rotSlider.className = 'flex-1 accent-red-500 h-1 bg-zinc-700 cursor-pointer';
+        rotSlider.oninput = (e) => {
+          e.stopPropagation();
+          s.rotation = parseInt(e.target.value, 10);
+          rotLabel.textContent = `Rot: ${s.rotation}°`;
+          render();
+        };
+
+        const resetRot = document.createElement('button');
+        resetRot.type = 'button';
+        resetRot.className = 'text-[10px] text-zinc-400 px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 hover:text-white cursor-pointer';
+        resetRot.textContent = '0°';
+        resetRot.onclick = (e) => {
+          e.stopPropagation();
+          s.rotation = 0;
+          rotSlider.value = 0;
+          rotLabel.textContent = 'Rot: 0°';
+          render();
+        };
+
+        rotRow.appendChild(rotLabel);
+        rotRow.appendChild(rotSlider);
+        rotRow.appendChild(resetRot);
+
+        const shadowRow = document.createElement('div');
+        shadowRow.className = 'flex items-center justify-between pt-1.5 border-t border-zinc-900';
+
+        const toggleWrapper = document.createElement('div');
+        toggleWrapper.className = 'flex items-center space-x-2';
+
+        const shadowCheck = document.createElement('input');
+        shadowCheck.type = 'checkbox';
+        shadowCheck.id = `stickerShadowCheck_${idx}`;
+        shadowCheck.className = 'accent-red-500 rounded cursor-pointer w-4 h-4';
+        shadowCheck.checked = !!s.hasShadow;
+
+        const checkText = document.createElement('label');
+        checkText.htmlFor = `stickerShadowCheck_${idx}`;
+        checkText.className = 'text-[11px] text-zinc-300 font-medium cursor-pointer select-none';
+        checkText.textContent = 'Shadow / Glow';
+
+        toggleWrapper.appendChild(shadowCheck);
+        toggleWrapper.appendChild(checkText);
+
+        const colorPicker = document.createElement('input');
+        colorPicker.type = 'color';
+        colorPicker.value = s.shadowColor || '#000000';
+        colorPicker.className = 'w-6 h-6 rounded border border-zinc-700 bg-transparent cursor-pointer';
+        colorPicker.disabled = !s.hasShadow;
+
+        shadowCheck.onchange = (e) => {
+          e.stopPropagation();
+          s.hasShadow = shadowCheck.checked;
+          colorPicker.disabled = !s.hasShadow;
+          render();
+        };
+
+        colorPicker.oninput = (e) => {
+          e.stopPropagation();
+          s.shadowColor = colorPicker.value;
+          render();
+        };
+
+        shadowRow.appendChild(toggleWrapper);
+        shadowRow.appendChild(colorPicker);
+
+        item.appendChild(header);
+        item.appendChild(rotRow);
+        item.appendChild(shadowRow);
+
+        stickersList.appendChild(item);
+      });
+    }
+
+    modeToggleBtn.addEventListener('click', () => {
+      state.isLocked = !state.isLocked;
+      if (state.isLocked) {
+        modeToggleBtn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-md font-semibold text-xs transition-colors bg-red-600 text-white shadow";
+        modeStatusText.textContent = "ART DIRECTOR MODE (LOCKED)";
+        tipText.textContent = "Dividers locked. Click & drag images to pan; scroll wheel to zoom. Drag text/stickers freely.";
+        canvas.style.cursor = 'grab';
+      } else {
+        modeToggleBtn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-md font-semibold text-xs transition-colors bg-amber-500 text-zinc-950 shadow";
+        modeStatusText.textContent = "LAYOUT MODE (UNLOCKED)";
+        tipText.textContent = "LAYOUT MODE: Drag middle handles (M) to move dividing bars together. Arrow keys nudge selections.";
+        canvas.style.cursor = 'default';
+      }
+      render();
+    });
+
+    function applyLayoutDefaults() {
+      if (state.aspectRatio === '16:9') {
+        switch(state.activeLayout) {
+          case 'diag_right_2':
+            state.seams = [{ top: 0.60, bottom: 0.40 }];
+            break;
+          case 'diag_right_3':
+            state.seams = [{ top: 0.40, bottom: 0.25 }, { top: 0.75, bottom: 0.60 }];
+            break;
+          case 'diag_right_4':
+            state.seams = [{ top: 0.32, bottom: 0.18 }, { top: 0.57, bottom: 0.43 }, { top: 0.82, bottom: 0.68 }];
+            break;
+          case 'diag_left_2':
+            state.seams = [{ top: 0.40, bottom: 0.60 }];
+            break;
+          case 'diag_left_3':
+            state.seams = [{ top: 0.25, bottom: 0.40 }, { top: 0.60, bottom: 0.75 }];
+            break;
+          case 'diag_left_4':
+            state.seams = [{ top: 0.18, bottom: 0.32 }, { top: 0.43, bottom: 0.57 }, { top: 0.68, bottom: 0.82 }];
+            break;
+          case 'vertical_2':
+          case 'versus_50_50':
+            state.seams = [{ top: 0.50, bottom: 0.50 }];
+            break;
+          case 'vertical_3':
+            state.seams = [{ top: 0.33, bottom: 0.33 }, { top: 0.66, bottom: 0.66 }];
+            break;
+          case 'vertical_4':
+            state.seams = [{ top: 0.25, bottom: 0.25 }, { top: 0.50, bottom: 0.50 }, { top: 0.75, bottom: 0.75 }];
+            break;
+          case 'hero_70_30':
+            state.seams = [{ top: 0.70, bottom: 0.70 }];
+            break;
+          case 'hero_stacked':
+            state.seams = [{ top: 0.65, bottom: 0.65 }];
+            state.horizontalSplit = 0.50;
+            break;
+          case 'hero_stacked_right':
+            state.seams = [{ top: 0.35, bottom: 0.35 }];
+            state.horizontalSplit = 0.50;
+            break;
+          case 'grid_2x2':
+            state.seams = [{ top: 0.50, bottom: 0.50 }];
+            state.horizontalSplit = 0.50;
+            break;
+        }
+      } else {
+        switch(state.activeLayout) {
+          case 'v_tier_2':
+            state.hSeams = [{ left: 0.50, right: 0.50 }];
+            break;
+          case 'v_tier_3':
+            state.hSeams = [{ left: 0.33, right: 0.33 }, { left: 0.66, right: 0.66 }];
+            break;
+          case 'v_slice_2':
+            state.seams = [{ top: 0.50, bottom: 0.50 }];
+            break;
+          case 'v_slice_3':
+            state.seams = [{ top: 0.33, bottom: 0.33 }, { top: 0.66, bottom: 0.66 }];
+            break;
+          case 'v_grid_2x2':
+          case 'v_brady_bunch':
+            break;
+        }
+      }
+
+      computeSlotPolygons().forEach((_, idx) => {
+        if (state.slots[idx] && state.slots[idx].image) autoFitImageToSlot(idx);
+      });
+
+      updateSidebarUI();
+      render();
+    }
+
+    layoutSelect.addEventListener('change', (e) => {
+      state.activeLayout = e.target.value;
+      applyLayoutDefaults();
+    });
+
+    // Quick Reset Layout Seams
+    resetLayoutBtn.addEventListener('click', () => {
+      applyLayoutDefaults();
+      showToast('Layout dividers reset to defaults.');
+    });
+
+    fileUploadInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0] && currentUploadTargetSlot !== null) {
+        loadImageFile(e.target.files[0], currentUploadTargetSlot);
+      }
+      fileUploadInput.value = '';
+    });
+
+    async function copySlideToClipboard() {
+      const originalText = copySlideLabel.textContent;
+      copySlideLabel.textContent = 'Copying...';
+      copySlideBtn.classList.add('bg-emerald-600', 'text-white');
+
+      const exportWidth = state.aspectRatio === '16:9' ? 3840 : 2160;
+      const exportHeight = state.aspectRatio === '16:9' ? 2160 : 3840;
+
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = exportWidth;
+      exportCanvas.height = exportHeight;
+      const exportCtx = exportCanvas.getContext('2d');
+
+      render(exportCtx, exportWidth, exportHeight, true);
+
+      exportCanvas.toBlob(async (blob) => {
+        if (!blob) {
+          showToast('Failed to create clipboard image.');
+          copySlideLabel.textContent = originalText;
+          copySlideBtn.classList.remove('bg-emerald-600', 'text-white');
+          return;
+        }
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.write) {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            showToast('Slide copied! Press Cmd+V in PowerPoint.');
+          } else {
+            showToast('Clipboard image API unavailable.');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Clipboard access denied by OS.');
+        }
+
+        setTimeout(() => {
+          copySlideLabel.textContent = originalText;
+          copySlideBtn.classList.remove('bg-emerald-600', 'text-white');
+        }, 1200);
+      }, 'image/png', 1.0);
+    }
+
+    copySlideBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      copySlideToClipboard();
+    });
+
+    function triggerDownload(width, height, defaultName, format = 'image/png', quality = 0.92, triggerBtn = null) {
+      if (triggerBtn) {
+        const originalText = triggerBtn.querySelector('span') ? triggerBtn.querySelector('span').textContent : '';
+        if (triggerBtn.querySelector('span')) triggerBtn.querySelector('span').textContent = 'Exporting...';
+        triggerBtn.classList.add('bg-emerald-600');
+        setTimeout(() => {
+          if (triggerBtn.querySelector('span')) triggerBtn.querySelector('span').textContent = originalText;
+          triggerBtn.classList.remove('bg-emerald-600');
+        }, 1200);
+      }
+
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = width;
+      exportCanvas.height = height;
+      const exportCtx = exportCanvas.getContext('2d');
+
+      render(exportCtx, width, height, true);
+
+      exportCanvas.toBlob((blob) => {
+        if (!blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.style.display = 'none';
+        link.href = blobUrl;
+        link.download = defaultName;
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 1500);
+
+        showToast(`Saved to Downloads: ${defaultName}`);
+      }, format, quality);
+    }
+
+    export1080Btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const ts = Date.now();
+      if (state.aspectRatio === '16:9') {
+        triggerDownload(1920, 1080, `thumbnail-1080p-${ts}.jpg`, 'image/jpeg', 0.92, export1080Btn);
+      } else {
+        triggerDownload(1080, 1920, `thumbnail-vertical-1080x1920-${ts}.jpg`, 'image/jpeg', 0.92, export1080Btn);
+      }
+    });
+
+    export4kBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const ts = Date.now();
+      if (state.aspectRatio === '16:9') {
+        triggerDownload(3840, 2160, `thumbnail-4k-${ts}.png`, 'image/png', 1.0, export4kBtn);
+      } else {
+        triggerDownload(2160, 3840, `thumbnail-vertical-4k-${ts}.png`, 'image/png', 1.0, export4kBtn);
+      }
+    });
+
+    let activePointerDragSource = null;
+
+    function updateSidebarUI() {
+      slotsContainer.innerHTML = '';
+      const activePolys = computeSlotPolygons();
+
+      activePolys.forEach((_, idx) => {
+        const slot = state.slots[idx];
+        const card = document.createElement('div');
+        card.dataset.slotIdx = idx;
+        card.className = 'slot-card bg-zinc-950 p-2.5 rounded border border-zinc-800 flex flex-col space-y-2 transition-colors';
+
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'copy';
+          card.classList.add('slot-drag-target');
+        });
+
+        card.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          card.classList.remove('slot-drag-target');
+        });
+
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          card.classList.remove('slot-drag-target');
+          handleIncomingImageTransfer(e.dataTransfer, idx);
+        });
+
+        const topRow = document.createElement('div');
+        topRow.className = 'flex items-center justify-between';
+
+        const labelGroup = document.createElement('div');
+        labelGroup.className = 'flex items-center space-x-2';
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'text-zinc-500 hover:text-amber-400 font-mono text-sm cursor-grab active:cursor-grabbing select-none px-1 py-0.5 rounded';
+        dragHandle.innerHTML = '⋮⋮';
+        dragHandle.title = 'Click and drag to swap with another slot';
+
+        dragHandle.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          activePointerDragSource = idx;
+          card.classList.add('opacity-40');
+          dragGhost.textContent = `Moving Slot ${String.fromCharCode(65 + idx)}`;
+          dragGhost.style.display = 'block';
+          dragGhost.style.left = `${e.clientX}px`;
+          dragGhost.style.top = `${e.clientY}px`;
+
+          function onPointerMove(moveEvent) {
+            dragGhost.style.left = `${moveEvent.clientX}px`;
+            dragGhost.style.top = `${moveEvent.clientY}px`;
+
+            document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('slot-drag-target'));
+            const elem = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+            const targetCard = elem ? elem.closest('.slot-card') : null;
+            if (targetCard && targetCard !== card) {
+              targetCard.classList.add('slot-drag-target');
+            }
+          }
+
+          function onPointerUp(upEvent) {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+
+            card.classList.remove('opacity-40');
+            dragGhost.style.display = 'none';
+
+            const elem = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+            const targetCard = elem ? elem.closest('.slot-card') : null;
+            document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('slot-drag-target'));
+
+            if (targetCard && targetCard.dataset.slotIdx !== undefined) {
+              const targetIdx = parseInt(targetCard.dataset.slotIdx, 10);
+              if (!isNaN(targetIdx) && targetIdx !== activePointerDragSource) {
+                reorderSlotImages(activePointerDragSource, targetIdx);
+              }
+            }
+            activePointerDragSource = null;
+          }
+
+          window.addEventListener('pointermove', onPointerMove);
+          window.addEventListener('pointerup', onPointerUp);
+        });
+
+        const badge = document.createElement('span');
+        badge.className = 'w-5 h-5 rounded bg-zinc-800 text-zinc-300 font-bold text-xs flex items-center justify-center font-mono';
+        badge.textContent = String.fromCharCode(65 + idx);
+
+        const title = document.createElement('span');
+        title.className = 'text-xs font-semibold text-zinc-300';
+        title.textContent = slot.image ? `Loaded (${slot.image.width}×${slot.image.height})` : 'Empty Slot';
+
+        labelGroup.appendChild(dragHandle);
+        labelGroup.appendChild(badge);
+        labelGroup.appendChild(title);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center space-x-1';
+
+        const uploadBtn = document.createElement('button');
+        uploadBtn.type = 'button';
+        uploadBtn.className = 'px-2 py-0.5 text-[11px] bg-zinc-800 text-zinc-200 rounded font-medium hover:bg-zinc-700 cursor-pointer';
+        uploadBtn.textContent = 'Upload';
+        uploadBtn.onclick = (e) => {
+          e.stopPropagation();
+          currentUploadTargetSlot = idx;
+          fileUploadInput.click();
+        };
+
+        const fitBtn = document.createElement('button');
+        fitBtn.type = 'button';
+        fitBtn.className = 'px-2 py-0.5 text-[11px] bg-zinc-800 text-zinc-200 rounded font-medium disabled:opacity-30 cursor-pointer';
+        fitBtn.textContent = 'Fit';
+        fitBtn.disabled = !slot.image;
+        fitBtn.onclick = (e) => {
+          e.stopPropagation();
+          autoFitImageToSlot(idx);
+        };
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'px-2 py-0.5 text-[11px] text-zinc-500 rounded font-medium disabled:opacity-30 cursor-pointer hover:text-red-400';
+        clearBtn.textContent = '✕';
+        clearBtn.disabled = !slot.image;
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          slot.image = null;
+          slot.rotation = 0;
+          slot.brightness = 100;
+          slot.contrast = 100;
+          updateSidebarUI();
+          render();
+        };
+
+        actions.appendChild(uploadBtn);
+        actions.appendChild(fitBtn);
+        actions.appendChild(clearBtn);
+
+        topRow.appendChild(labelGroup);
+        topRow.appendChild(actions);
+        card.appendChild(topRow);
+
+        if (slot.image) {
+          const rotRow = document.createElement('div');
+          rotRow.className = 'flex items-center space-x-2 pt-1.5 border-t border-zinc-900';
+
+          const rotLabel = document.createElement('span');
+          rotLabel.className = 'text-[10px] text-zinc-400 font-mono w-14';
+          rotLabel.textContent = `Rot: ${slot.rotation || 0}°`;
+
+          const rotSlider = document.createElement('input');
+          rotSlider.type = 'range';
+          rotSlider.min = '-180';
+          rotSlider.max = '180';
+          rotSlider.value = slot.rotation || 0;
+          rotSlider.className = 'flex-1 accent-red-500 h-1 bg-zinc-700 cursor-pointer';
+          rotSlider.oninput = (e) => {
+            e.stopPropagation();
+            slot.rotation = parseInt(e.target.value, 10);
+            rotLabel.textContent = `Rot: ${slot.rotation}°`;
+            render();
+          };
+
+          const resetRot = document.createElement('button');
+          resetRot.type = 'button';
+          resetRot.className = 'text-[10px] text-zinc-400 px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 hover:text-white cursor-pointer';
+          resetRot.textContent = '0°';
+          resetRot.onclick = (e) => {
+            e.stopPropagation();
+            slot.rotation = 0;
+            rotSlider.value = 0;
+            rotLabel.textContent = 'Rot: 0°';
+            render();
+          };
+
+          rotRow.appendChild(rotLabel);
+          rotRow.appendChild(rotSlider);
+          rotRow.appendChild(resetRot);
+          card.appendChild(rotRow);
+
+          // Direct Pixel Adjustment Controls with One-Click Reset
+          const filterRow = document.createElement('div');
+          filterRow.className = 'grid grid-cols-2 gap-2 pt-1.5 border-t border-zinc-900 text-[10px] text-zinc-400 font-mono';
+
+          const bCol = document.createElement('div');
+          bCol.innerHTML = `<div class="flex justify-between"><span>Bright</span><span class="bright-val">${slot.brightness || 100}%</span></div>`;
+          const bSlider = document.createElement('input');
+          bSlider.type = 'range';
+          bSlider.min = '50';
+          bSlider.max = '160';
+          bSlider.value = slot.brightness || 100;
+          bSlider.className = 'w-full accent-red-500 h-1 bg-zinc-700 cursor-pointer mt-1';
+          bSlider.oninput = (e) => {
+            e.stopPropagation();
+            slot.brightness = parseInt(e.target.value, 10);
+            bCol.querySelector('.bright-val').textContent = `${slot.brightness}%`;
+            render();
+          };
+          bCol.appendChild(bSlider);
+
+          const cCol = document.createElement('div');
+          cCol.innerHTML = `<div class="flex justify-between"><span>Contrast</span><span class="contrast-val">${slot.contrast || 100}%</span></div>`;
+          const cSlider = document.createElement('input');
+          cSlider.type = 'range';
+          cSlider.min = '50';
+          cSlider.max = '170';
+          cSlider.value = slot.contrast || 100;
+          cSlider.className = 'w-full accent-red-500 h-1 bg-zinc-700 cursor-pointer mt-1';
+          cSlider.oninput = (e) => {
+            e.stopPropagation();
+            slot.contrast = parseInt(e.target.value, 10);
+            cCol.querySelector('.contrast-val').textContent = `${slot.contrast}%`;
+            render();
+          };
+          cCol.appendChild(cSlider);
+
+          filterRow.appendChild(bCol);
+          filterRow.appendChild(cCol);
+          card.appendChild(filterRow);
+
+          // Reset Image Button (Filters + Rotation + Zoom/Pan Fit)
+          const resetSlotRow = document.createElement('div');
+          resetSlotRow.className = 'pt-1.5 flex justify-end';
+
+          const resetSlotBtn = document.createElement('button');
+          resetSlotBtn.type = 'button';
+          resetSlotBtn.className = 'text-[10px] text-zinc-400 hover:text-amber-400 px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded transition-colors';
+          resetSlotBtn.textContent = '↺ Reset Image & Filters';
+          resetSlotBtn.onclick = (e) => {
+            e.stopPropagation();
+            slot.brightness = 100;
+            slot.contrast = 100;
+            slot.rotation = 0;
+            autoFitImageToSlot(idx);
+            updateSidebarUI();
+            render();
+            showToast(`${SLOT_NAMES[idx]} reset to default.`);
+          };
+
+          resetSlotRow.appendChild(resetSlotBtn);
+          card.appendChild(resetSlotRow);
+        }
+
+        slotsContainer.appendChild(card);
+      });
+    }
+
+    function loadPathOrFileIntoSlot(source, targetIndex) {
+      if (targetIndex < 0 || targetIndex >= state.slots.length) return;
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        if (!state.slots[targetIndex]) {
+          state.slots[targetIndex] = { image: null, x: 0, y: 0, scale: 1, rotation: 0, brightness: 100, contrast: 100 };
+        }
+        state.slots[targetIndex].image = img;
+        state.slots[targetIndex].rotation = 0;
+        state.slots[targetIndex].brightness = 100;
+        state.slots[targetIndex].contrast = 100;
+        autoFitImageToSlot(targetIndex);
+        updateSidebarUI();
+        render();
+      };
+
+      if (typeof source === 'string') {
+        img.src = source;
+      } else if (source instanceof File || source instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = (e) => { img.src = e.target.result; };
+        reader.readAsDataURL(source);
+      }
+    }
+
+    function loadImageFile(file, slotIndex) {
+      loadPathOrFileIntoSlot(file, slotIndex);
+    }
+
+    function handleIncomingImageTransfer(dataTransfer, targetSlotIndex) {
+      if (!dataTransfer) return;
+
+      if (dataTransfer.files && dataTransfer.files.length > 0) {
+        for (let i = 0; i < dataTransfer.files.length; i++) {
+          const file = dataTransfer.files[i];
+          if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.name)) {
+            loadPathOrFileIntoSlot(file, targetSlotIndex);
+            return;
+          }
+        }
+      }
+
+      if (dataTransfer.items && dataTransfer.items.length > 0) {
+        for (let i = 0; i < dataTransfer.items.length; i++) {
+          const item = dataTransfer.items[i];
+          if (item.kind === 'file') {
+            const file = item.getAsFile();
+            if (file) {
+              loadPathOrFileIntoSlot(file, targetSlotIndex);
+              return;
+            }
+          }
+        }
+      }
+
+      const uriList = dataTransfer.getData('text/uri-list');
+      const htmlData = dataTransfer.getData('text/html');
+      let targetUrl = null;
+
+      if (uriList && uriList.trim().length > 0) {
+        const lines = uriList.split('\n').filter(l => !l.startsWith('#') && l.trim().length > 0);
+        if (lines.length > 0) targetUrl = lines[0].trim();
+      } else if (htmlData) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlData, 'text/html');
+        const img = doc.querySelector('img');
+        if (img && img.src) targetUrl = img.src;
+      }
+
+      if (targetUrl) {
+        loadPathOrFileIntoSlot(targetUrl, targetSlotIndex);
+      }
+    }
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const coords = getCanvasCoordinates(e);
+      const polygons = computeSlotPolygons();
+      let targetSlot = 0;
+
+      for (let i = 0; i < polygons.length; i++) {
+        if (isPointInPolygon(coords, polygons[i])) {
+          targetSlot = i;
+          break;
+        }
+      }
+
+      handleIncomingImageTransfer(e.dataTransfer, targetSlot);
+    });
+
+    populateLayoutMenu();
+    applyLayoutDefaults();
+    updateSidebarUI();
+    updateTextInspector();
+    render();
+  </script>
+</body>
+</html>

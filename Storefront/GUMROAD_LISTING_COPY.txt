@@ -1,0 +1,25 @@
+====================================================================
+GUMROAD SETUP CHECKLIST & COPY-PASTE DESCRIPTION
+====================================================================
+
+1. PRODUCT NAME:
+Thumbnail Workbench (macOS & Windows Desktop App)
+
+2. PRICING SETTINGS ON GUMROAD:
+- Amount: $0
+- Toggle ON: "Allow customers to pay what they want"
+- Minimum amount: $0 (or $1 if you prefer)
+- Suggested amount: $5
+
+3. PRODUCT DESCRIPTION (Copy & paste into Gumroad's Description box):
+--------------------------------------------------------------------
+Stop fighting bloated photo editors just to frame, test, and export a clean video thumbnail.
+
+**Thumbnail Workbench** is a fast, lightweight, single-serving desktop application built with Rust and Tauri. It launches instantaneously, uses less than 15 MB of disk space, and runs 100% locally on your computer with zero subscriptions, cloud logins, or telemetry.
+
+### What's Included in Your Download:
+* **macOS Universal Installer (`thumbnail-workbench_0.1.0_universal.dmg`):** Runs natively on both Apple Silicon (M1/M2/M3/M4) and Intel Macs.
+* **Windows 10/11 Setup Wizard (`thumbnail-workbench_0.1.0_x64-setup.exe`):** Standard Windows installer with Desktop & Start Menu shortcuts.
+* **Windows Portable Executable (`thumbnail-workbench_0.1.0_x64-portable.exe`):** Zero-install standalone version—just double-click and run!
+* **Quick Installation Guide (`README_FIRST_INSTALLATION_GUIDE.txt`):** Simple 10-second instructions for opening independent apps on macOS and Windows.
+====================================================================

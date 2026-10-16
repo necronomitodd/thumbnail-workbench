@@ -1,0 +1,12 @@
+# Node & Rust build directories
+node_modules/
+src-tauri/target/
+
+# Compiled binary release folders (hosted on Gumroad)
+Releases/
+Storefront/*.dmg
+Storefront/*.exe
+Storefront/*.zip
+
+# macOS system files
+.DS_Store

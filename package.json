@@ -1,0 +1,17 @@
+{
+  "name": "thumbnail-workbench",
+  "version": "0.1.0",
+  "description": "Single-serving Thumbnail Workbench desktop application",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build:mac": "tauri build --target universal-apple-darwin",
+    "build:win": "XWIN_ACCEPT_LICENSE=1 tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc",
+    "build:all": "npm run build:mac && npm run build:win",
+    "package:releases": "mkdir -p Releases && cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/thumbnail-workbench_${npm_package_version}_universal.dmg Releases/ && cp src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/thumbnail-workbench_${npm_package_version}_x64-setup.exe Releases/ && cp src-tauri/target/x86_64-pc-windows-msvc/release/thumbnail-workbench.exe Releases/thumbnail-workbench_${npm_package_version}_x64-portable.exe && open Releases",
+    "release": "npm run build:all && npm run package:releases"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

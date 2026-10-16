@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gumroad Store Graphics Generator — Thumbnail Workbench</title>
+  <style>
+    body {
+      background: #0f1115;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      text-align: center;
+    }
+    h1 { margin-bottom: 0.5rem; }
+    p { color: #9ca3af; margin-bottom: 2rem; }
+    .canvas-block {
+      background: #181b22;
+      border: 1px solid #2a2f3d;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 0 auto 2.5rem;
+      max-width: 900px;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #2a2f3d;
+      margin-bottom: 1rem;
+    }
+    button {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #dc2626; }
+  </style>
+</head>
+<body>
+  <h1>Gumroad Graphic Generator</h1>
+  <p>Click the red buttons below to save your ready-to-upload Gumroad Cover (1280×720) and Thumbnail (600×600) PNGs.</p>
+
+  <!-- 1280x720 Cover Banner -->
+  <div class="canvas-block">
+    <h3>1. Gumroad Product Cover Banner (1280 × 720 px)</h3>
+    <canvas id="coverCanvas" width="1280" height="720"></canvas>
+    <br />
+    <button onclick="downloadCanvas('coverCanvas', 'gumroad-cover-1280x720.png')">
+      Download Cover Image (1280×720 PNG)
+    </button>
+  </div>
+
+  <!-- 600x600 Square Thumbnail -->
+  <div class="canvas-block">
+    <h3>2. Gumroad Square Thumbnail (600 × 600 px)</h3>
+    <canvas id="thumbCanvas" width="600" height="600"></canvas>
+    <br />
+    <button onclick="downloadCanvas('thumbCanvas', 'gumroad-thumbnail-600x600.png')">
+      Download Square Thumbnail (600×600 PNG)
+    </button>
+  </div>
+
+  <script>
+    // Draw the 1280x720 Cover Banner
+    function drawCover() {
+      const canvas = document.getElementById("coverCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Dark gradient background
+      const grad = ctx.createLinearGradient(0, 0, 1280, 720);
+      grad.addColorStop(0, "#0f1115");
+      grad.addColorStop(1, "#181b24");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1280, 720);
+
+      // Subtle glowing accent border
+      ctx.strokeStyle = "rgba(239, 68, 68, 0.35)";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(40, 40, 1200, 640);
+
+      // Top Pill Badge
+      ctx.fillStyle = "rgba(239, 68, 68, 0.18)";
+      ctx.beginPath();
+      ctx.roundRect(410, 160, 460, 48, 24);
+      ctx.fill();
+
+      ctx.fillStyle = "#f87171";
+      ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("NATIVE DESKTOP APP • MACOS & WINDOWS", 640, 191);
+
+      // Main Title
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 84px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("Thumbnail Workbench", 640, 315);
+
+      // Subtitle
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "500 32px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("Fast, single-serving desktop utility for high-impact video thumbnails.", 640, 385);
+
+      // Feature Pills at Bottom
+      const pills = ["✓ Universal Mac (.dmg)", "✓ Windows 10/11 (.exe)", "✓ 100% Offline & Local"];
+      pills.forEach((text, i) => {
+        const x = 230 + i * 410;
+        ctx.fillStyle = "#1f2430";
+        ctx.beginPath();
+        ctx.roundRect(x - 165, 480, 330, 64, 12);
+        ctx.fill();
+
+        ctx.fillStyle = "#10b981";
+        ctx.font = "bold 24px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillText(text, x, 520);
+      });
+    }
+
+    // Draw the 600x600 Square Thumbnail
+    function drawThumb() {
+      const canvas = document.getElementById("thumbCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const grad = ctx.createLinearGradient(0, 0, 600, 600);
+      grad.addColorStop(0, "#0f1115");
+      grad.addColorStop(1, "#1e222d");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 600, 600);
+
+      // Red framing icon box
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 8;
+      ctx.strokeRect(170, 90, 260, 160);
+
+      // Crop corner marks inside icon
+      ctx.fillStyle = "#10b981";
+      ctx.fillRect(190, 110, 40, 8);
+      ctx.fillRect(190, 110, 8, 40);
+      ctx.fillRect(370, 222, 40, 8);
+      ctx.fillRect(402, 190, 8, 40);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.font = "800 52px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("Thumbnail", 300, 345);
+      ctx.fillText("Workbench", 300, 405);
+
+      ctx.fillStyle = "#f87171";
+      ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("MAC (.DMG) + WINDOWS (.EXE)", 300, 485);
+    }
+
+    function downloadCanvas(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    drawCover();
+    drawThumb();
+  </script>
+</body>
+</html>
