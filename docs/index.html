@@ -76,6 +76,9 @@
       border: 1px solid #27272a;
       border-radius: 12px;
       padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .card h2 {
       font-size: 1.25rem;
@@ -87,11 +90,26 @@
     .card ul {
       padding-left: 1.25rem;
       color: #d4d4d8;
-      margin: 0;
+      margin: 0 0 1.5rem 0;
     }
     .card li {
       margin-bottom: 0.75rem;
       font-size: 0.95rem;
+    }
+    .btn-gumroad {
+      display: block;
+      width: 100%;
+      background-color: #dc2626;
+      color: #ffffff;
+      text-align: center;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background-color 150s ease, filter 150s ease;
+    }
+    .btn-gumroad:hover {
+      filter: brightness(1.1);
     }
     footer {
       max-width: 900px;
@@ -125,20 +143,25 @@
 
   <div class="grid">
     <div class="card">
-      <h2>Built for Speed, Not Subscriptions</h2>
-      <ul>
-        <li><strong>100% Offline & Local:</strong> No cloud accounts, telemetry, or monthly subscription fees.</li>
-        <li><strong>Universal Binaries:</strong> Native support for macOS (.dmg) and Windows (.exe).</li>
-        <li><strong>Zero Bloat:</strong> Instant startup with hardware-accelerated rendering.</li>
-      </ul>
+      <div>
+        <h2>Built for Speed, Not Subscriptions</h2>
+        <ul>
+          <li><strong>100% Offline & Local:</strong> No cloud accounts, telemetry, or monthly subscription fees.</li>
+          <li><strong>Universal Binaries:</strong> Native support for macOS (.dmg) and Windows (.exe).</li>
+          <li><strong>Zero Bloat:</strong> Instant startup with hardware-accelerated rendering.</li>
+        </ul>
+      </div>
     </div>
     
     <div class="card">
-      <h2>Gumroad Distribution</h2>
-      <ul>
-        <li><strong>Pay What You Want:</strong> Grab it for free or chip in to support independent development.</li>
-        <li><strong>Lifetime Updates:</strong> Get future patches and feature additions automatically.</li>
-      </ul>
+      <div>
+        <h2>Gumroad Distribution</h2>
+        <ul>
+          <li><strong>Pay What You Want:</strong> Grab it for free or chip in to support independent development.</li>
+          <li><strong>Lifetime Updates:</strong> Get future patches and feature additions automatically.</li>
+        </ul>
+      </div>
+      <a href="https://toddler253.gumroad.com/l/thumbnail-workbench" class="btn-gumroad" target="_blank">Get Thumbnail Workbench on Gumroad</a>
     </div>
   </div>
 
