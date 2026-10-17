@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Guide - Thumbnail Workbench</title>
+  <style>
+    *, ::before, ::after {
+      box-sizing: border-box;
+      border-width: 0;
+      border-style: solid;
+      border-color: #27272a;
+    }
+    html {
+      line-height: 1.5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      background-color: #09090b;
+      color: #f4f4f5;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+    .card {
+      background-color: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      padding: 2.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+    }
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-top: 0;
+      margin-bottom: 1rem;
+      letter-spacing: -0.025em;
+    }
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #e4e4e7;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid #27272a;
+      padding-bottom: 0.5rem;
+    }
+    p, li {
+      color: #d4d4d8;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    ul, ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+    code {
+      background-color: #27272a;
+      color: #f87171;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+    }
+    .badge {
+      display: inline-block;
+      background-color: #dc2626;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .tip-box {
+      background-color: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid #ef4444;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .tip-box p {
+      margin: 0;
+      color: #fca5a5;
+    }
+    a {
+      color: #f87171;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="font-weight: 900; font-size: 1.25rem; color: white;">THUMBNAIL</span>
+        <span class="badge">WORKBENCH</span>
+      </div>
+      <h1>User Documentation & Guide</h1>
+      <p>Welcome to <strong>Thumbnail Workbench</strong>—a fast, 100% offline desktop application built for creators to layout, compose, and export custom video thumbnails and slide decks without the bloat of heavy software[cite: 8].</p>
+
+      <h2>Core Workflow</h2>
+      <ol>
+        <li><strong>Import Assets:</strong> Drag and drop background images, cutout subjects, or logos directly onto any slot polygon on the canvas, or click <code>Upload</code> in the sidebar card[cite: 8].</li>
+        <li><strong>Manage Slots:</strong> Reorder your images instantly using the drag handles (<code>⋮⋮</code>) next to each slot letter badge[cite: 8].</li>
+        <li><strong>Layout & Seams:</strong> Toggle between <strong>Layout Mode (Unlocked)</strong> and <strong>Art Director Mode (Locked)</strong> via the top bar[cite: 8]. When unlocked, drag the red middle handles (<code>M</code>) to move dividing bars together[cite: 8].</li>
+        <li><strong>Composition:</strong> Add customizable text overlays and transparent sticker cutouts via the sidebar tabs, adjusting font styles, strokes, outer glows, and rotations freely[cite: 8].</li>
+      </ol>
+
+      <h2>Export Settings & Resolution Guide</h2>
+      <ul>
+        <li><strong>Copy Slide (<code>Cmd + V</code>):</strong> Instantly copies a high-resolution 4K render straight to your system clipboard, ready to paste directly into PowerPoint[cite: 8].</li>
+        <li><strong>Export 1080p (JPEG):</strong> Renders an optimized 1920x1080 export engineered to keep your final file size safely under the strict <strong>2MB compression limit</strong> required for YouTube video thumbnails[cite: 8].</li>
+        <li><strong>Export 4K (PNG):</strong> Generates an uncompressed, crystal-clear 3840x2160 master file ideal for presentation slide decks[cite: 8].</li>
+      </ul>
+
+      <div class="tip-box">
+        <p><strong>Pro Tip:</strong> Thumbnail Workbench runs entirely offline. Your assets never touch a cloud server, ensuring 100% data privacy[cite: 8].</p>
+      </div>
+
+      <h2>Installation & Security Help</h2>
+      <p>Encountering first-time security warnings when opening your installer? Check out our <a href="gatekeeper.html">Installation & Security Guide</a>[cite: 8].</p>
+    </div>
+  </div>
+</body>
+</html>
