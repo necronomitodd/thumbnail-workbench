@@ -3,137 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thumbnail Workbench — Fast, Focused Desktop Thumbnail Utility</title>
-  <script src="https://gumroad.com/js/gumroad.js"></script>
+  <title>Thumbnail Workbench</title>
   <style>
-    :root {
-      --bg-dark: #0f1115;
-      --bg-card: #181b22;
-      --border-color: #2a2f3d;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --accent: #ef4444;
-      --accent-hover: #dc2626;
-      --success: #10b981;
+    *, ::before, ::after {
+      box-sizing: border-box;
+      border-width: 0;
+      border-style: solid;
+      border-color: #27272a;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg-dark); color: var(--text-main); line-height: 1.6; padding: 2rem 1rem 4rem; }
-    .container { max-width: 960px; margin: 0 auto; }
-    header { text-align: center; padding: 2rem 0 1.5rem; }
-    .badge { display: inline-block; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; }
-    h1 { font-size: 3rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.85rem; }
-    .subtitle { font-size: 1.2rem; color: var(--text-muted); max-width: 640px; margin: 0 auto 1.5rem; }
-    .hero-preview { margin-bottom: 2rem; border-radius: 14px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45); background: var(--bg-card); }
-    .hero-preview img { display: block; width: 100%; height: auto; }
-    .main-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 2rem; align-items: start; }
-    @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } h1 { font-size: 2.25rem; } }
-    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 2rem; }
-    .feature-list { list-style: none; margin-top: 1.25rem; }
-    .feature-list li { padding: 0.85rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-start; gap: 0.85rem; }
-    .feature-list li:last-child { border-bottom: none; padding-bottom: 0; }
-    .check { color: var(--success); font-weight: 800; font-size: 1.1rem; line-height: 1.4; flex-shrink: 0; }
-    .feature-text { font-size: 0.98rem; color: #d1d5db; }
-    .feature-text strong { color: #ffffff; }
-    .pricing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .suggested-tag { font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 0.25rem 0.6rem; border-radius: 6px; font-weight: 600; }
-    .tier-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
-    .tier-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.7rem 0.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.15s ease; }
-    .tier-btn.active { border-color: var(--accent); background: rgba(239, 68, 68, 0.15); }
-    .price-input-wrapper { display: flex; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.85rem; margin-bottom: 1.25rem; }
-    .currency-symbol { font-size: 1.25rem; font-weight: 700; color: var(--text-muted); margin-right: 0.4rem; }
-    .price-input { background: transparent; border: none; color: var(--text-main); font-size: 1.25rem; font-weight: 700; width: 100%; outline: none; }
-    .cta-button { display: block; width: 100%; text-align: center; background: var(--accent); color: #ffffff; text-decoration: none; font-size: 1.1rem; font-weight: 700; padding: 1rem; border-radius: 10px; transition: background 0.15s ease; }
-    .cta-button:hover { background: var(--accent-hover); }
-    .os-pill { margin-top: 1rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
-    footer { text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 0.85rem; }
-    footer a { color: #f87171; text-decoration: none; }
+    html {
+      line-height: 1.5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      background-color: #09090b;
+      color: #f4f4f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 3rem 1rem;
+    }
+    .hero {
+      max-width: 900px;
+      width: 100%;
+      background-color: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin: 0 0 1rem 0;
+      letter-spacing: -0.025em;
+    }
+    p {
+      color: #a1a1aa;
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+    .badge {
+      display: inline-block;
+      background-color: #dc2626;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      max-width: 900px;
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background-color: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 2rem;
+    }
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    .card ul {
+      padding-left: 1.25rem;
+      color: #d4d4d8;
+      margin: 0;
+    }
+    .card li {
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+    footer {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-top: 1px solid #27272a;
+      color: #71717a;
+      font-size: 0.85rem;
+    }
+    footer a {
+      color: #a1a1aa;
+      text-decoration: none;
+      transition: color 150s ease;
+    }
+    footer a:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <span class="badge">v0.1.0 • Native Desktop App for macOS & Windows</span>
-      <h1>Thumbnail Workbench</h1>
-      <p class="subtitle">A fast, lightweight, single-serving desktop utility for crafting, testing, and exporting high-impact video thumbnails without bloated software.</p>
-    </header>
 
-    <div class="hero-preview">
-      <img src="./gumroad-cover-1280x720.png" alt="Thumbnail Workbench Desktop Utility Banner">
-    </div>
-
-    <div class="main-grid">
-      <div class="card">
-        <h2>Built for Speed, Not Subscriptions</h2>
-        <p style="color: var(--text-muted); margin-top: 0.5rem;">Powered by Rust and Tauri. Installs in seconds, takes under 15 MB of disk space, and runs 100% offline on your machine.</p>
-        <ul class="feature-list">
-          <li><span class="check">✓</span><div class="feature-text"><strong>Universal macOS App:</strong> Native Apple Silicon (M1–M4) & Intel (.dmg) installer included.</div></li>
-          <li><span class="check">✓</span><div class="feature-text"><strong>Windows 10 & 11 Ready:</strong> Includes both a full Setup Wizard (.exe) and a zero-install Portable (.exe).</div></li>
-          <li><span class="check">✓</span><div class="feature-text"><strong>Zero Bloat:</strong> Instant startup with hardware-accelerated HTML5 Canvas rendering.</div></li>
-          <li><span class="check">✓</span><div class="feature-text"><strong>100% Local & Private:</strong> No cloud accounts, telemetry, or monthly subscriptions ever.</div></li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="pricing-header">
-          <h3>Pay What You Want</h3>
-          <span class="suggested-tag">Suggested: $5</span>
-        </div>
-        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Pick a fair price to support independent software development, or enter a custom amount:</p>
-        
-        <div class="tier-buttons">
-          <button type="button" class="tier-btn" id="btn-0" onclick="setPrice(0)">$0 (Free)</button>
-          <button type="button" class="tier-btn active" id="btn-5" onclick="setPrice(5)">$5 ⭐</button>
-          <button type="button" class="tier-btn" id="btn-10" onclick="setPrice(10)">$10 ☕</button>
-        </div>
-
-        <div class="price-input-wrapper">
-          <span class="currency-symbol">$</span>
-          <input type="number" id="customPrice" class="price-input" value="5" min="0" step="1" oninput="onPriceInput(this.value)">
-        </div>
-
-        <a id="checkoutBtn" href="https://toddler253.gumroad.com/l/thumbnail-workbench?wanted=true&price=5" class="cta-button">
-          Get Thumbnail Workbench ($5)
-        </a>
-        <div id="osNotice" class="os-pill">Includes both macOS (.dmg) and Windows (.exe) installers</div>
-      </div>
-    </div>
-    <footer>Built by <a href="https://github.com/necronomitodd" target="_blank" rel="noopener">necronomitodd</a> • Powered by Rust & Tauri</footer>
+  <div class="hero">
+    <span class="badge">NATIVE DESKTOP APP • MACOS & WINDOWS</span>
+    <h1>Thumbnail Workbench</h1>
+    <p>A fast, lightweight, single-serving desktop utility for crafting, testing, and exporting high-impact video thumbnails without bloated software.</p>
   </div>
-<a href="user-guide.html">View User Documentation & Guide</a>
-  
-<script>
-  function setPrice(amount) {
-    document.getElementById('customPrice').value = amount;
-    updateUI(amount);
-  }
 
-  function onPriceInput(val) {
-    var num = parseFloat(val);
-    if (isNaN(num) || num < 0) { num = 0; }
-    updateUI(num);
-  }
-
-  function updateUI(price) {
-    var b0 = document.getElementById('btn-0');
-    var b5 = document.getElementById('btn-5');
-    var b10 = document.getElementById('btn-10');
+  <div class="grid">
+    <div class="card">
+      <h2>Built for Speed, Not Subscriptions</h2>
+      <ul>
+        <li><strong>100% Offline & Local:</strong> No cloud accounts, telemetry, or monthly subscription fees.</li>
+        <li><strong>Universal Binaries:</strong> Native support for macOS (.dmg) and Windows (.exe).</li>
+        <li><strong>Zero Bloat:</strong> Instant startup with hardware-accelerated rendering.</li>
+      </ul>
+    </div>
     
-    b0.className = 'tier-btn';
-    b5.className = 'tier-btn';
-    b10.className = 'tier-btn';
+    <div class="card">
+      <h2>Gumroad Distribution</h2>
+      <ul>
+        <li><strong>Pay What You Want:</strong> Grab it for free or chip in to support independent development.</li>
+        <li><strong>Lifetime Updates:</strong> Get future patches and feature additions automatically.</li>
+      </ul>
+    </div>
+  </div>
 
-    if (price === 0) {
-      b0.className = 'tier-btn active';
-    } else if (price === 5) {
-      b5.className = 'tier-btn active';
-    } else if (price === 10) {
-      b10.className = 'tier-btn active';
-    }
+  <footer>
+    <div>Built by necronomitodd • Powered by Rust & Tauri</div>
+    <div>
+      <a href="user-guide.html">User Documentation & Guide</a>
+    </div>
+  </footer>
 
-    var btn = document.getElementById('checkoutBtn');
-    btn.href = 'https://toddler253.gumroad.com/l/thumbnail-workbench?wanted=true&price=' + price;
-    btn.textContent = 'Get Thumbnail Workbench ($' + price + ')';
-  }
-</script>
 </body>
 </html>
